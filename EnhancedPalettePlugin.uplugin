@@ -1,0 +1,36 @@
+﻿{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"FriendlyName": "Enhanced Palette",
+	"Description": "Plugin expands actor palette with custom dynamic categories and other usability enhancements",
+	"Category": "Editor",
+	"CreatedBy": "Aquanox",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": true,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "EnhancedPalette",
+			"Type": "UncookedOnly",
+			"LoadingPhase": "Default",
+			"WhitelistTargets": [ "Editor" ]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "StructUtils",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "SlateIconReferencePlugin",
+			"Enabled": false,
+			"Optional": true
+		}
+	]
+}
