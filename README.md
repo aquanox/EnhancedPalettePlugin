@@ -1,4 +1,3 @@
-﻿[![GitHub release](https://img.shields.io/github/release/aquanox/EnhancedPalettePlugin.svg)](https://github.com/aquanox/EnhancedPalettePlugin/releases)
 [![GitHub license](https://img.shields.io/github/license/aquanox/EnhancedPalettePlugin)](https://github.com/aquanox/EnhancedPalettePlugin/blob/main/LICENSE)
 [![GitHub forks](https://img.shields.io/github/forks/aquanox/EnhancedPalettePlugin)](https://github.com/aquanox/EnhancedPalettePlugin/network)
 [![GitHub stars](https://img.shields.io/github/stars/aquanox/EnhancedPalettePlugin)](https://github.com/aquanox/EnhancedPalettePlugin/stargazers)
@@ -6,45 +5,52 @@
 
 ## Enhanced Palette Plugin for Unreal Engine
 
-> [!CAUTION]
-> This plugin is currently Experimental, while most of features are functional there is room for improvements.
+> [!NOTE]
+> This plugin is currently Experimental Stage, while being functionally complete there is room for usability improvements and new features.
 
-This plugin makes `Place Actors` panel configurable from Editor Settings 
-and provides additional customization features for the category content.
+This plugin extends the capabilities of Unreal Editor `Place Actors` panel, allowing it to be customized from Editor Settings and granting the ability to dynamically generate category content.
 
-Primary plugin usage is aimed for completing following use cases:
-* Having custom category for Project-Specific items used globally across project.
-* Having custom dynamic category for Project-Specific items gathered from Project files (for example selecting them by AssetDataTag, Class etc).
-* Having custom category for Level-Specific items, changing dynamically for based on currently edited Level or already present actors.
+The primary plugin application is aimed at completing following usage scenarios:
+* Custom category for per-project items used globally across project.
+* Custom category for per-project items gathered from project assets (for example selecting by AssetDataTag, Class etc).
+* Custom category for per-level items, generated based on active Level Editor World (for example gathering actors and filtering by tag).
 * Other cases where having custom list of placeable items would be useful.
-* Hiding not useful/needed standard engine categories.
+* Hiding not needed standard engine categories from sight (VR, Test) or reordering them.
+* Editing `Recently Placed` category.
 
-The plugin provides three "types" of defining custom palette categories: Static, Dynamic and External.
+Plugin provides three "types" of defining custom palette categories: Static, Dynamic and External.
 
 ### Static Category
 
-Entirely defined in settings panel with list of placeable items.
+Category defined in settings panel with fixed list of placeable items.
 
 ![](Images/EPP-Config-Static.png)
 
 ### Dynamic Category
 
-A Class or Blueprint containing category information and implementing item selection logic for the category content.
+A Class or Blueprint containing category information and implementing placeable item selection logic.
 
-Dynamic category can update it's content dynamically in runtime based on user triggers.
+External triggers can trigger dynamic category content update.
+
+Dynamic categories registered in Plugin Settings or they can be automatically discovered if enabled.
 
 ![](Images/EPP-Config-AssetReg.png)
 
-### External Category (Experimental)
+> [!IMPORTANT]
+> Palette Category classes must inherit `UEnhancedPaletteCategory` and be part of Editor/UncookedOnly module.
+> 
+> Native category example can be found at `Source/EnhancedPalette/Private/Tests/ExampleNativeCategory.cpp`
 
-Subsystem exposes functions to register categories in runtime from editor utility blueprints.
+### External Category
 
-This mode is an experiment.
+Subsystem exposes functions to register and populate categories in runtime from editor utility blueprints.
+
+> [!IMPORTANT]
+> This mode is an experiment.
 
 ## Unreal Engine Versions
 
-Plugin relies on Instanced Structs, compiles and tested on UnrealEngine 5.4 and 5.5.
-For other engine versions some slight patching would be needed.
+Plugin relies on Instanced Structs usage, compiles and tested on UnrealEngine 5.4 and 5.5, other engine versions would need some patching as engine internals change.
 
 ## License
 
