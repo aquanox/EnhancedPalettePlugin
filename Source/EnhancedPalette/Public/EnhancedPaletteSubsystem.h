@@ -52,7 +52,7 @@ ENUM_CLASS_FLAGS(EManagedCategoryDirtyFlags);
  * Core of palette customizer plugin.
  *
  */
-UCLASS(meta=(SBColor="#cccc00FF"))
+UCLASS()
 class ENHANCEDPALETTE_API UEnhancedPaletteSubsystem : public UEditorSubsystem, public FTickableEditorObject
 {
 	GENERATED_BODY()
@@ -98,7 +98,7 @@ public:
 	// }}}
 
 	// {{{ externals
-	bool CreateExternalCategory(FStaticPlacementCategoryInfo CreationInfo);
+	bool CreateExternalCategory(const FStaticPlacementCategoryInfo& CreationInfo);
 	bool RemoveExternalCategory(const FName& UniqueId);
 	bool AddExternalCategoryItem(const FName& UniqueId, TInstancedStruct<FConfigPlaceableItem> Item);
 	// }}}

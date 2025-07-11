@@ -450,8 +450,11 @@ void UEnhancedPaletteSubsystem::TryPopulateCategoryItems()
 			}
 			Ptr->ManagedIds.Empty();
 
-			TArray<TInstancedStruct<FConfigPlaceableItem>> Result; Result.Reserve(32);
+			TArray<TInstancedStruct<FConfigPlaceableItem>> Result;
 			Ptr->GatherPlaceableItems(this, Result);
+
+			TArray<FName> KnownInternalNames;
+			KnownInternalNames.Reserve(Result.Num());
 
 			for (const TInstancedStruct<FConfigPlaceableItem>& ConfigItem : Result)
 			{
@@ -460,21 +463,32 @@ void UEnhancedPaletteSubsystem::TryPopulateCategoryItems()
 
 				if (TSharedPtr<FPlaceableItem> Item = ConfigItem.Get<FConfigPlaceableItem>().MakeItem())
 				{
-					UE_LOG(LogEnhancedPalette, Verbose, TEXT("Register Placement Item:  Name=%s Factory=%s ObjectData=%s"),
-					       *Item->GetNativeFName().ToString(),
-					       *GetPathNameSafe(Item->AssetFactory.GetObject()),
-					       *Item->AssetData.ToSoftObjectPath().ToString()
+					UE_LOG(LogEnhancedPalette, Verbose, TEXT("Register Placement Item: Category=%s Name=%s Factory=%s ObjectData=%s"),
+						*Ptr->UniqueId.ToString(),
+						*Item->GetNativeFName().ToString(),
+						*GetPathNameSafe(Item->AssetFactory.GetObject()),
+						*Item->AssetData.ToSoftObjectPath().ToString()
 					);
+
+					if (KnownInternalNames.Contains(Item->GetNativeFName()))
+					{
+						UE_LOG(LogEnhancedPalette, Warning, TEXT("Duplicating native name found [Category=%s Name=%s] it may affect favorites list"),
+							*Ptr->UniqueId.ToString(),
+							*Item->GetNativeFName().ToString());
+						// continue;
+					}
 
 					TOptional<FPlacementModeID> Id = Access->RegisterPlaceableItem(Ptr->UniqueId, Item.ToSharedRef());
 					if (Id.IsSet())
 					{
+						KnownInternalNames.Add(Item->GetNativeFName());
 						Ptr->ManagedIds.Add(Id.GetValue());
 					}
 					else
 					{
 						UE_LOG(LogEnhancedPalette, Warning, TEXT("Register Placement Item: Failed"));
 					}
+					
 				}
 			}
 
@@ -489,7 +503,7 @@ void UEnhancedPaletteSubsystem::TryPopulateCategoryItems()
 	}
 }
 
-bool UEnhancedPaletteSubsystem::CreateExternalCategory(FStaticPlacementCategoryInfo CreationInfo)
+bool UEnhancedPaletteSubsystem::CreateExternalCategory(const FStaticPlacementCategoryInfo& CreationInfo)
 {
 	if (FindManagedCategory(CreationInfo.UniqueId) != nullptr)
 	{

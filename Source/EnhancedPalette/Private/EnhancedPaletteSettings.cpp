@@ -1,13 +1,9 @@
 ﻿#include "EnhancedPaletteSettings.h"
 
-#include "ActorFactories/ActorFactoryClass.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "IPlacementModeModule.h"
-#include "Styling/SlateStyle.h"
-#include "Textures/SlateIcon.h"
 #include "PrivateAccessHelper.h"
 #include "Subsystems/PlacementSubsystem.h"
-#include "EnhancedPaletteCustomizations.h"
 
 /*
  *
@@ -32,32 +28,63 @@ FPlaceableItem(UClass& InActorFactoryClass,
  *
  */
 
-inline TOptional<FText> MakeOpionalDesc(const FConfigPlaceableItem* Self)
+/**
+ * Helper to assign common optional overrides for FPlaceableItem
+ * @param Self 
+ * @param TargetItem 
+ */
+void ConfigurePlaceableItem(const FConfigPlaceableItem* Self, const TSharedPtr<FPlaceableItem>& TargetItem)
 {
-	return Self->DisplayName.IsEmptyOrWhitespace() ? TOptional<FText>() : Self->DisplayName;
-}
-inline TOptional<int32> MakeOpionalOrder(const FConfigPlaceableItem* Self)
-{
-	return Self->SortOrder ? TOptional<int32>() : Self->SortOrder;
+	if (!Self->NativeName.IsNone())
+	{
+		TargetItem->NativeName = Self->NativeName.ToString();
+	}
+	if (!Self->DisplayName.IsEmptyOrWhitespace())
+	{
+		TargetItem->DisplayName = Self->DisplayName;
+	}
+	if (Self->SortOrder != 0)
+	{
+		TargetItem->SortOrder = Self->SortOrder;
+	}
 }
 
-template<typename TPtr>
-bool TryRequestActorFactory(const TSoftClassPtr<TPtr>& TypePtr, UActorFactory*& FactoryPtr)
+/**
+ *  Helper to query asset factory for specified asset data
+ */
+template<typename T>
+bool TryRequestAssetFactory(const TSoftClassPtr<T>& FactoryClassPtr, TScriptInterface<IAssetFactoryInterface>& OutFactory)
 {
-	FactoryPtr = nullptr;
-	if (const UClass* LoadedClass = TypePtr.Get())
+	OutFactory = nullptr;
+	if (const UClass* LoadedClass = FactoryClassPtr.Get())
 	{
-		FactoryPtr = GEditor->FindActorFactoryByClass(LoadedClass);
+		OutFactory = GEditor->FindActorFactoryByClass(LoadedClass);
 	}
-	else if (const UClass* SyncLoaded = TypePtr.LoadSynchronous())
+	else if (const UClass* SyncLoaded = FactoryClassPtr.LoadSynchronous())
 	{
-		FactoryPtr = GEditor->FindActorFactoryByClass(SyncLoaded);
+		OutFactory = GEditor->FindActorFactoryByClass(SyncLoaded);
 	}
-	return FactoryPtr != nullptr;
+	return OutFactory != nullptr;
 }
 
-template<typename TPtr>
-bool TryRequestAssetData(const TPtr& ObjectPtr, FAssetData& OutAssetData)
+/**
+ *  Helper to query asset factory for specified asset data
+ */
+bool TryRequestAssetFactoryForAsset(const FAssetData& AssetData, TScriptInterface<IAssetFactoryInterface>& OutFactory)
+{
+	OutFactory = nullptr;
+	if (UPlacementSubsystem* Subsystem = GEditor->GetEditorSubsystem<UPlacementSubsystem>())
+	{
+		OutFactory = Subsystem->FindAssetFactoryFromAssetData(AssetData);
+	}
+	return OutFactory != nullptr;
+}
+
+/**
+ *  Helper to query asset data for soft object ptr without loading it
+ */
+template<typename T>
+bool TryRequestAssetData(const T& ObjectPtr, FAssetData& OutAssetData)
 {
 	if (ObjectPtr.IsValid())
 	{
@@ -74,6 +101,9 @@ bool TryRequestAssetData(const TPtr& ObjectPtr, FAssetData& OutAssetData)
 	return false;
 }
 
+// ======================================================================
+// ======================================================================
+
 TSharedPtr<FPlaceableItem> FConfigPlaceableItem::MakeItem() const
 {
 	checkNoEntry();
@@ -85,14 +115,34 @@ FString FConfigPlaceableItem::ToString() const
 	return DisplayName.ToString();
 }
 
+bool FConfigPlaceableItem::IdenticalTo(const FConfigPlaceableItem& Other) const
+{
+	return false;
+}
+
 bool FConfigPlaceableItem::IsValidData() const
 {
 	checkNoEntry();
 	return false;
 }
 
+// ======================================================================
+// ======================================================================
+
 FConfigPlaceableItem_Native::FConfigPlaceableItem_Native(TSharedPtr<FPlaceableItem> InItem) : Item(MoveTempIfPossible(InItem))
 {
+}
+
+bool FConfigPlaceableItem_Native::IdenticalTo(const FConfigPlaceableItem& Other) const
+{
+	//const FConfigPlaceableItem_Native& LocalOther = static_cast<const FConfigPlaceableItem_Native&>(Other);
+	//if (Item && LocalOther.Item)
+	//{
+	//	return Item->AssetFactory == LocalOther.Item->AssetFactory
+	//		&& Item->AssetData == LocalOther.Item->AssetData
+	//		&& Item->NativeName == LocalOther.Item->NativeName;
+	//}
+	return false;
 }
 
 bool FConfigPlaceableItem_Native::IsValidData() const
@@ -105,10 +155,18 @@ TSharedPtr<FPlaceableItem> FConfigPlaceableItem_Native::MakeItem() const
 	return Item;
 }
 
+// ======================================================================
+// ======================================================================
+
 FConfigPlaceableItem_FactoryClass::FConfigPlaceableItem_FactoryClass(TSoftClassPtr<UObject> InClass)
 	: FactoryClass(InClass)
 {
-	
+}
+
+bool FConfigPlaceableItem_FactoryClass::IdenticalTo(const FConfigPlaceableItem& Other) const
+{
+	const FConfigPlaceableItem_FactoryClass& LocalOther = static_cast<const FConfigPlaceableItem_FactoryClass&>(Other);
+	return FactoryClass == LocalOther.FactoryClass;
 }
 
 bool FConfigPlaceableItem_FactoryClass::IsValidData() const
@@ -118,56 +176,58 @@ bool FConfigPlaceableItem_FactoryClass::IsValidData() const
 
 TSharedPtr<FPlaceableItem> FConfigPlaceableItem_FactoryClass::MakeItem() const
 {
-	UActorFactory* Factory = GEditor->FindActorFactoryByClass(FactoryClass.LoadSynchronous());
-	if (!TryRequestActorFactory(FactoryClass, Factory))
+	if (UClass* LoadedClass = FactoryClass.LoadSynchronous())
 	{
-		return nullptr;
+		auto Item = MakeShared<FPlaceableItem>(*LoadedClass);
+		ConfigurePlaceableItem(this, Item);
+		return Item;
 	}
-
-	FAssetData AssetData = Factory ? Factory->GetDefaultActorClass(FAssetData()) : FAssetData();
-	
-	return MakeShared<FPlaceableItem>(
-		Factory,
-		AssetData,
-		NAME_None, NAME_None, TOptional<FLinearColor>(), // brush customization
-		MakeOpionalOrder(this), MakeOpionalDesc(this));
+	return nullptr;
 }
 
-FConfigPlaceableItem_FactoryAsset::FConfigPlaceableItem_FactoryAsset(TSoftClassPtr<UObject> InFactoryClass, const FAssetData& InAssetData)
-	: FactoryClass(InFactoryClass), ObjectData(InAssetData)
+// ======================================================================
+// ======================================================================
+
+FConfigPlaceableItem_FactoryAssetData::FConfigPlaceableItem_FactoryAssetData(TSoftClassPtr<UObject> InFactoryClass, const FAssetData& InAssetData)
+	: FactoryClass(InFactoryClass), AssetData(InAssetData)
 {
-	
 }
 
-bool FConfigPlaceableItem_FactoryAsset::IsValidData() const
+bool FConfigPlaceableItem_FactoryAssetData::IdenticalTo(const FConfigPlaceableItem& Other) const
 {
-	return !FactoryClass.IsNull() && ObjectData.IsValid();
+	const FConfigPlaceableItem_FactoryAssetData& LocalOther = static_cast<const FConfigPlaceableItem_FactoryAssetData&>(Other);
+	return FactoryClass == LocalOther.FactoryClass && AssetData == LocalOther.AssetData;
 }
 
-inline TSharedPtr<FPlaceableItem> FConfigPlaceableItem_FactoryAsset::MakeItem() const
+bool FConfigPlaceableItem_FactoryAssetData::IsValidData() const
 {
-	UActorFactory* Factory = GEditor->FindActorFactoryByClass(FactoryClass.LoadSynchronous());
-	if (!Factory)
+	return !FactoryClass.IsNull() && AssetData.IsValid();
+}
+
+inline TSharedPtr<FPlaceableItem> FConfigPlaceableItem_FactoryAssetData::MakeItem() const
+{
+	if (UClass* LoadedClass = FactoryClass.LoadSynchronous())
 	{
-		return nullptr;
+		auto Item =  MakeShared<FPlaceableItem>(*LoadedClass, AssetData, NAME_None, NAME_None, TOptional<FLinearColor>(), TOptional<int32>(), TOptional<FText>());
+		ConfigurePlaceableItem(this, Item);
+		return Item;
 	}
-
-	if (!ObjectData.IsValid())
-	{
-		return nullptr;
-	}
-
-	return MakeShared<FPlaceableItem>(
-		Factory,
-		ObjectData,
-		NAME_None, NAME_None, TOptional<FLinearColor>(), // brush customization
-		MakeOpionalOrder(this), MakeOpionalDesc(this));
+	return nullptr;
 }
+
+// ======================================================================
+// ======================================================================
 
 FConfigPlaceableItem_FactoryObject::FConfigPlaceableItem_FactoryObject(TSoftClassPtr<UObject> InFactoryClass, TSoftObjectPtr<UObject> InObject)
 	: FactoryClass(InFactoryClass), Object(InObject)
 {
 	
+}
+
+bool FConfigPlaceableItem_FactoryObject::IdenticalTo(const FConfigPlaceableItem& Other) const
+{
+	const FConfigPlaceableItem_FactoryObject& LocalOther = static_cast<const FConfigPlaceableItem_FactoryObject&>(Other);
+	return FactoryClass == LocalOther.FactoryClass && Object == LocalOther.Object;
 }
 
 bool FConfigPlaceableItem_FactoryObject::IsValidData() const
@@ -177,21 +237,34 @@ bool FConfigPlaceableItem_FactoryObject::IsValidData() const
 
 TSharedPtr<FPlaceableItem> FConfigPlaceableItem_FactoryObject::MakeItem() const
 {
-	UActorFactory* Factory = GEditor->FindActorFactoryByClass(FactoryClass.LoadSynchronous());
-
-	FAssetData AssetData = IAssetRegistry::Get()->GetAssetByObjectPath(Object.ToSoftObjectPath());
+	FAssetData AssetData;
+	if (!TryRequestAssetData(Object, AssetData))
+	{
+		return nullptr;
+	}
 	
-	return MakeShared<FPlaceableItem>(
-		Factory,
-		AssetData,
-		NAME_None, NAME_None, TOptional<FLinearColor>(), // brush customization
-		MakeOpionalOrder(this), MakeOpionalDesc(this));
+	if (UClass* LoadedClass = FactoryClass.LoadSynchronous())
+	{
+		auto Item = MakeShared<FPlaceableItem>(*LoadedClass, AssetData, NAME_None, NAME_None,  TOptional<FLinearColor>(), TOptional<int32>(), TOptional<FText>());
+		ConfigurePlaceableItem(this, Item);
+		return Item;
+	}
+	return nullptr;
 }
+
+// ======================================================================
+// ======================================================================
 
 FConfigPlaceableItem_ActorClass::FConfigPlaceableItem_ActorClass(TSoftClassPtr<AActor> InClass)
 	: ActorClass(InClass)
 {
 	
+}
+
+bool FConfigPlaceableItem_ActorClass::IdenticalTo(const FConfigPlaceableItem& Other) const
+{
+	const FConfigPlaceableItem_ActorClass& LocalOther = static_cast<const FConfigPlaceableItem_ActorClass&>(Other);
+	return ActorClass == LocalOther.ActorClass;
 }
 
 bool FConfigPlaceableItem_ActorClass::IsValidData() const
@@ -202,41 +275,34 @@ bool FConfigPlaceableItem_ActorClass::IsValidData() const
 TSharedPtr<FPlaceableItem> FConfigPlaceableItem_ActorClass::MakeItem() const
 {
 	FAssetData AssetData;
-	if (ActorClass.IsValid())
-	{
-		AssetData = FAssetData(ActorClass.Get());
-	}
-	else if (IAssetRegistry::GetChecked().TryGetAssetByObjectPath(ActorClass.ToSoftObjectPath(), AssetData) != UE::AssetRegistry::EExists::Exists)
+	if (!TryRequestAssetData(ActorClass, AssetData))
 	{
 		return nullptr;
 	}
 
-	if (!AssetData.IsValid())
+	TScriptInterface<IAssetFactoryInterface> AssetFactory = nullptr;
+	if (TryRequestAssetFactoryForAsset(AssetData, AssetFactory))
 	{
-		return nullptr;
+		auto Item = MakeShared<FPlaceableItem>(AssetFactory, AssetData, NAME_None, NAME_None, TOptional<FLinearColor>(), TOptional<int32>(), TOptional<FText>());
+		ConfigurePlaceableItem(this, Item);
+		return Item;
 	}
 
-	TScriptInterface<IAssetFactoryInterface> ActorFactory = nullptr;
-	if (UPlacementSubsystem* PlacementSubsystem = GEditor->GetEditorSubsystem<UPlacementSubsystem>())
-	{
-		ActorFactory = PlacementSubsystem->FindAssetFactoryFromAssetData(AssetData);
-	}
-
-	if (!ActorFactory)
-	{
-		ActorFactory = GEditor->FindActorFactoryByClass(UActorFactoryClass::StaticClass());
-	}
-
-	return MakeShared<FPlaceableItem>(
-		ActorFactory,
-		AssetData,
-		NAME_None, NAME_None, TOptional<FLinearColor>(),
-		MakeOpionalOrder(this), MakeOpionalDesc(this));
+	return nullptr;
 }
+
+// ======================================================================
+// ======================================================================
 
 FConfigPlaceableItem_AssetObject::FConfigPlaceableItem_AssetObject(TSoftObjectPtr<UObject> InObject)
 	: Object(InObject)
 {
+}
+
+bool FConfigPlaceableItem_AssetObject::IdenticalTo(const FConfigPlaceableItem& Other) const
+{
+	const FConfigPlaceableItem_AssetObject& LocalOther = static_cast<const FConfigPlaceableItem_AssetObject&>(Other);
+	return Object == LocalOther.Object;
 }
 
 bool FConfigPlaceableItem_AssetObject::IsValidData() const
@@ -247,52 +313,77 @@ bool FConfigPlaceableItem_AssetObject::IsValidData() const
 TSharedPtr<FPlaceableItem> FConfigPlaceableItem_AssetObject::MakeItem() const
 {
 	FAssetData AssetData;
-	if (Object.IsValid())
-	{
-		AssetData = FAssetData(Object.Get());
-	}
-	else
-	{
-		AssetData = IAssetRegistry::GetChecked().GetAssetByObjectPath(Object.ToSoftObjectPath());
-	}
-
-	if (!AssetData.IsValid())
+	if (!TryRequestAssetData(Object, AssetData))
 	{
 		return nullptr;
 	}
 
-	TScriptInterface<IAssetFactoryInterface> ActorFactory = nullptr;
-	if (UPlacementSubsystem* PlacementSubsystem = GEditor->GetEditorSubsystem<UPlacementSubsystem>())
+	TScriptInterface<IAssetFactoryInterface> AssetFactory = nullptr;
+	if (TryRequestAssetFactoryForAsset(AssetData, AssetFactory))
 	{
-		ActorFactory = PlacementSubsystem->FindAssetFactoryFromAssetData(AssetData);
+		auto Item = MakeShared<FPlaceableItem>(AssetFactory, AssetData, NAME_None, NAME_None, TOptional<FLinearColor>(), TOptional<int32>(), TOptional<FText>());
+		ConfigurePlaceableItem(this, Item);
+		return Item;
 	}
 
-	if (!ActorFactory)
-	{
-		return nullptr;
-	}
-
-	return MakeShared<FPlaceableItem>(
-		ActorFactory,
-		AssetData,
-		NAME_None, NAME_None, TOptional<FLinearColor>(),
-		MakeOpionalOrder(this), MakeOpionalDesc(this));
+	return nullptr;
 }
 
-bool FStandardPlacementCategoryInfo::CanEditChange(const FEditPropertyChain& PropertyChain) const
+// ======================================================================
+// ======================================================================
+
+FConfigPlaceableItem_AssetData::FConfigPlaceableItem_AssetData(const FAssetData& InAssetData) : AssetData(InAssetData)
+{
+}
+
+bool FConfigPlaceableItem_AssetData::IdenticalTo(const FConfigPlaceableItem& Other) const
+{
+	const FConfigPlaceableItem_AssetData& LocalOther = static_cast<const FConfigPlaceableItem_AssetData&>(Other);
+	return AssetData == LocalOther.AssetData;
+}
+
+bool FConfigPlaceableItem_AssetData::IsValidData() const
+{
+	return AssetData.IsValid();
+}
+
+TSharedPtr<FPlaceableItem> FConfigPlaceableItem_AssetData::MakeItem() const
+{
+	TScriptInterface<IAssetFactoryInterface> AssetFactory = nullptr;
+	if (TryRequestAssetFactoryForAsset(AssetData, AssetFactory))
+	{
+		auto Item = MakeShared<FPlaceableItem>(AssetFactory, AssetData, NAME_None, NAME_None, TOptional<FLinearColor>(), TOptional<int32>(), TOptional<FText>());
+		ConfigurePlaceableItem(this, Item);
+		return Item;
+	}
+	return nullptr;
+}
+
+// ======================================================================
+// ======================================================================
+
+bool FStandardPlacementCategoryInfo::CanEditChange(const FProperty* InProperty) const
 {
 	static const FName PROP_SortOrder = GET_MEMBER_NAME_CHECKED(FStandardPlacementCategoryInfo, Order);
 	
-	const FName PropertyName = PropertyChain.GetActiveNode() ? PropertyChain.GetActiveNode()->GetValue()->GetFName() : NAME_None;
+	const FName PropertyName = InProperty ? InProperty->GetFName() : NAME_None;
 #if UE_VERSION_NEWER_THAN_OR_EQUAL(5, 5, 0)
 	if (UniqueId == FBuiltInPlacementCategories::Favorites() && PropertyName == PROP_SortOrder)
 		return false;
 #endif
 	if (UniqueId == FBuiltInPlacementCategories::RecentlyPlaced() && PropertyName == PROP_SortOrder)
 		return false;
-	
+
 	return true;
 }
+
+bool FStandardPlacementCategoryInfo::CanEditChange(const FEditPropertyChain& PropertyChain) const
+{
+	return CanEditChange(PropertyChain.GetActiveNode() ? PropertyChain.GetActiveNode()->GetValue() : nullptr);
+}
+
+// ======================================================================
+// ======================================================================
 
 UEnhancedPaletteSettings::UEnhancedPaletteSettings()
 {
@@ -304,6 +395,25 @@ UEnhancedPaletteSettings::UEnhancedPaletteSettings()
 void UEnhancedPaletteSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+TArray<TSoftObjectPtr<UScriptStruct>> UEnhancedPaletteSettings::GetUsableStaticItems()
+{
+	TArray<TSoftObjectPtr<UScriptStruct>> Result;
+	Result.Add(FConfigPlaceableItem_FactoryClass::StaticStruct());
+	Result.Add(FConfigPlaceableItem_FactoryObject::StaticStruct());
+	Result.Add(FConfigPlaceableItem_ActorClass::StaticStruct());
+	Result.Add(FConfigPlaceableItem_AssetObject::StaticStruct());
+	return Result;
+}
+
+TArray<TSoftObjectPtr<UScriptStruct>> UEnhancedPaletteSettings::GetUnUsableStaticItems()
+{
+	TArray<TSoftObjectPtr<UScriptStruct>> Result;
+	Result.Add(FConfigPlaceableItem_Native::StaticStruct());
+	Result.Add(FConfigPlaceableItem_FactoryAssetData::StaticStruct());
+	Result.Add(FConfigPlaceableItem_AssetData::StaticStruct());
+	return Result;
 }
 
 void UEnhancedPaletteSettings::TriggerUpdateData()

@@ -85,7 +85,7 @@ struct FAssetDrivenCategory : FManagedCategory
 };
 
 // category created externally by interacting with subsystem API
-struct FExternalCategory : FConfigDrivenCategory
+struct FExternalCategory : public FConfigDrivenCategory
 {
 	FStaticPlacementCategoryInfo Data;
 	bool bPendingKill = false;

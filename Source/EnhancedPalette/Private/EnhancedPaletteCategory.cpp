@@ -3,7 +3,6 @@
 #include "EnhancedPaletteCategory.h"
 
 #include "ActorFactories/ActorFactory.h"
-#include "ActorFactories/ActorFactoryClass.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Engine/Blueprint.h"
 #include "EnhancedPaletteLibrary.h"
@@ -69,6 +68,10 @@ void UEnhancedPaletteCategory::Initialize(UEnhancedPaletteSubsystem* InSubystem)
 	}
 }
 
+void UEnhancedPaletteCategory::NativeInitialize()
+{
+}
+
 void UEnhancedPaletteCategory::Tick(float DeltaTime)
 {
 	if (bTickable)
@@ -85,39 +88,46 @@ void UEnhancedPaletteCategory::Tick(float DeltaTime)
 	}
 }
 
+void UEnhancedPaletteCategory::NativeTick()
+{
+}
+
 void UEnhancedPaletteCategory::GatherItems(TArray<TConfigPlaceableItem>& OutResult)
 {
 	TGuardValue<bool> IsGathering(bGathering, true);
-	
+
 	// reset all previousy registered elements and state
 	AutoOrder.Reset();
-	Descriptors.Reset();
-	
+	LocalDescriptors.Reset();
+
 	{
 		FEditorScriptExecutionGuard Guard;
 
 		// native gather
-		NativeGatherItems(OutResult);
+		NativeGatherItems();
 		// bp gather, tbd 
 		K2_GatherItems();
 	}
 
-	if (bSortable)
-	{
-		Algo::StableSort(Descriptors, FConfigPlaceableItemSorter());
-	}
-
-	OutResult = MoveTemp(Descriptors);
-	Descriptors.Reset();
+	OutResult = MoveTemp(LocalDescriptors);
+	LocalDescriptors.Reset();
 }
 
-void UEnhancedPaletteCategory::AddDescriptorInternal(TConfigPlaceableItem&& Desc)
+void UEnhancedPaletteCategory::NativeGatherItems()
 {
-	ensureMsgf(bGathering, TEXT("AddDescriptor was called outside of Gather Items"));
-	
-	if (!Desc.IsValid() || !Desc.GetPtr<FConfigPlaceableItem>()->IsValidData())
+}
+
+void UEnhancedPaletteCategory::AddInternal(TConfigPlaceableItem&& Desc)
+{
+	if (!bGathering)
 	{
-		UE_LOG(LogEnhancedPalette, Warning, TEXT("Failed to add descriptor"));
+		FFrame::KismetExecutionMessage(TEXT("Add() can be used only during Gather Items"), ELogVerbosity::Warning);
+		return;
+	}
+
+	if (!Desc.IsValid() || !Desc.Get<FConfigPlaceableItem>().IsValidData())
+	{
+		UE_LOG(LogEnhancedPalette, Warning, TEXT("Failed to add descriptor: data is invalid"));
 		return;
 	}
 
@@ -126,74 +136,94 @@ void UEnhancedPaletteCategory::AddDescriptorInternal(TConfigPlaceableItem&& Desc
 		Desc.GetMutable<FConfigPlaceableItem>().SortOrder = ++AutoOrder.GetValue();
 	}
 
-	for (const TConfigPlaceableItem& Existing : Descriptors)
+	for (const TConfigPlaceableItem& Existing : LocalDescriptors)
 	{
-		auto& Left = Existing.Get<FConfigPlaceableItem>();
-		auto& Right = Desc.Get<FConfigPlaceableItem>();
-		if (Existing.GetScriptStruct() == Desc.GetScriptStruct() && Left.Identical(Right))
+		if (Existing.GetScriptStruct() == Desc.GetScriptStruct()
+			&& Existing.Get<FConfigPlaceableItem>().IdenticalTo(Desc.Get<FConfigPlaceableItem>()))
 		{
-			UE_LOG(LogEnhancedPalette, Warning, TEXT("Failed to add descriptor due to duplicate"));
+			UE_LOG(LogEnhancedPalette, Warning, TEXT("Failed to add descriptor: duplicate"));
 			return;
 		}
 	}
 
-	Descriptors.Emplace(MoveTemp(Desc));
+	LocalDescriptors.Emplace(MoveTemp(Desc));
 }
 
-void UEnhancedPaletteCategory::AddDescriptorStruct(TInstancedStruct<FConfigPlaceableItem> ItemStruct)
+void UEnhancedPaletteCategory::AddItem(TInstancedStruct<FConfigPlaceableItem> ItemStruct)
 {
-	AddDescriptorInternal(MoveTemp(ItemStruct));
+	AddInternal(MoveTemp(ItemStruct));
 }
 
-void UEnhancedPaletteCategory::AddDescriptor_FactoryClass(TSoftClassPtr<UActorFactory> FactoryClass, FText ItemName, int32 ItemSortOrder)
+void UEnhancedPaletteCategory::AddFactoryClass(TSoftClassPtr<UActorFactory> FactoryClass, FName NativeName, FText ItemName, int32 ItemSortOrder)
 {
 	FConfigPlaceableItem_FactoryClass Cfg;
 	Cfg.FactoryClass = FactoryClass;
+	Cfg.NativeName = NativeName;
 	Cfg.DisplayName = ItemName;
 	Cfg.SortOrder = ItemSortOrder;
-	AddDescriptorInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_FactoryClass>(Cfg));
+	AddInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_FactoryClass>(Cfg));
 }
 
-void UEnhancedPaletteCategory::AddDescriptor_FactoryAsset(TSoftClassPtr<UActorFactory> Factory, const FAssetData& AssetData, FText ItemName, int32 ItemSortOrder)
+void UEnhancedPaletteCategory::AddFactoryWithAsset(TSoftClassPtr<UActorFactory> Factory, const FAssetData& AssetData, FName NativeName, FText ItemName, int32 ItemSortOrder)
 {
-	FConfigPlaceableItem_FactoryAsset Cfg;
+	FConfigPlaceableItem_FactoryAssetData Cfg;
 	Cfg.FactoryClass = Factory;
-	Cfg.ObjectData = AssetData;
+	Cfg.AssetData = AssetData;
+	Cfg.NativeName = NativeName;
 	Cfg.DisplayName = ItemName;
 	Cfg.SortOrder = ItemSortOrder;
-	AddDescriptorInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_FactoryAsset>(Cfg));
+	AddInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_FactoryAssetData>(Cfg));
 }
 
-void UEnhancedPaletteCategory::AddDescriptor_FactoryObject(TSoftClassPtr<UActorFactory> FactoryClass, TSoftObjectPtr<UObject> AssetObject, FText ItemName, int32 ItemSortOrder)
+void UEnhancedPaletteCategory::AddFactoryWithObject(TSoftClassPtr<UActorFactory> FactoryClass, TSoftObjectPtr<UObject> AssetObject, FName NativeName, FText ItemName, int32 ItemSortOrder)
 {
 	FConfigPlaceableItem_FactoryObject Cfg;
 	Cfg.FactoryClass = FactoryClass;
 	Cfg.Object = AssetObject;
+	Cfg.NativeName = NativeName;
 	Cfg.DisplayName = ItemName;
 	Cfg.SortOrder = ItemSortOrder;
-	AddDescriptorInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_FactoryObject>(Cfg));
+	AddInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_FactoryObject>(Cfg));
 }
 
-void UEnhancedPaletteCategory::AddDescriptor_ActorClass(TSoftClassPtr<AActor> ActorClass, FText ItemName, int32 ItemSortOrder)
+void UEnhancedPaletteCategory::AddActorClass(TSoftClassPtr<AActor> ActorClass, FName NativeName, FText ItemName, int32 ItemSortOrder)
 {
 	FConfigPlaceableItem_ActorClass Cfg;
 	Cfg.ActorClass = ActorClass;
+	Cfg.NativeName = NativeName;
 	Cfg.DisplayName = ItemName;
 	Cfg.SortOrder = ItemSortOrder;
-	AddDescriptorInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_ActorClass>(Cfg));
+	AddInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_ActorClass>(Cfg));
 }
 
-void UEnhancedPaletteCategory::AddDescriptor_AssetObject(TSoftObjectPtr<UObject> AssetObject, FText ItemName, int32 ItemSortOrder)
+void UEnhancedPaletteCategory::AddAssetObject(TSoftObjectPtr<UObject> AssetObject, FName NativeName, FText ItemName, int32 ItemSortOrder)
 {
 	FConfigPlaceableItem_AssetObject Cfg;
 	Cfg.Object = AssetObject;
+	Cfg.NativeName = NativeName;
 	Cfg.DisplayName = ItemName;
 	Cfg.SortOrder = ItemSortOrder;
-	AddDescriptorInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_AssetObject>(Cfg));
+	AddInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_AssetObject>(Cfg));
+}
+
+void UEnhancedPaletteCategory::AddAssetData(const FAssetData& AssetData, FName NativeName, FText ItemName, int32 ItemSortOrder)
+{
+	FConfigPlaceableItem_AssetData Cfg;
+	Cfg.AssetData = AssetData;
+	Cfg.NativeName = NativeName;
+	Cfg.DisplayName = ItemName;
+	Cfg.SortOrder = ItemSortOrder;
+	AddInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_AssetData>(Cfg));
 }
 
 void UEnhancedPaletteCategory::SetAutoOrder(int32 StartOrder)
 {
+	if (!bGathering)
+	{
+		FFrame::KismetExecutionMessage(TEXT("SetAutoOrder() can be used only during Gather Items"), ELogVerbosity::Warning);
+		return;
+	}
+
 	AutoOrder = StartOrder;
 }
 
@@ -205,11 +235,22 @@ void UEnhancedPaletteCategory::NotifyContentChanged()
 	}
 }
 
+void UEnhancedPaletteCategory::SortItems()
+{
+	if (!bGathering)
+	{
+		FFrame::KismetExecutionMessage(TEXT("SortItems() can be used only during Gather Items"), ELogVerbosity::Warning);
+		return;
+	}
+
+	Algo::StableSort(LocalDescriptors, FConfigPlaceableItemSorter());
+}
+
 void UEnhancedPaletteCategory::PrintDebugInfo()
 {
 	UE_LOG(LogEnhancedPalette, Log,
-		TEXT("DEBUG %08x this=%p %s class=%p %s t=%s"),
-		GetUniqueID(), this, *GetName(),
-		GetClass(), *GetClass()->GetName(),
-		*GetTagMetaData());
+	       TEXT("DEBUG %08x this=%p %s class=%p %s t=%s"),
+	       GetUniqueID(), this, *GetName(),
+	       GetClass(), *GetClass()->GetName(),
+	       *GetTagMetaData());
 }

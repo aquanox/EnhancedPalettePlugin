@@ -111,6 +111,7 @@ void FConfigDrivenCategory::GatherPlaceableItems(UEnhancedPaletteSubsystem* Owne
 {
 	if (const FStaticPlacementCategoryInfo* CategoryInfo = GetConfig())
 	{
+		Out.Reserve(CategoryInfo->Items.Num());
 		Out.Append(CategoryInfo->Items);
 	}
 }
@@ -272,6 +273,7 @@ void FAssetDrivenCategory::GatherPlaceableItems(UEnhancedPaletteSubsystem* Owner
 {
 	if (bRegistered && ensure(IsValid(Instance)))
 	{
+		Out.Reserve(32);
 		Instance->GatherItems(Out);
 	}
 }

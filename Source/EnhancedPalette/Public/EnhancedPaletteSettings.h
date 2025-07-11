@@ -42,10 +42,18 @@ struct FPlaceableItem;
 /**
  * Represents a single spawnable item within Placement menu.
  *
- * A valid placeable item defined by one of combinations:
- * - Valid Actor Factory (uses Default Actor)
- * - Valid Factory and Object Name
- * - Valid Actor Class Name (uses Actor Factory)
+ * Standard item definitions:
+ * - Actor Factory Class (uses factory defaults)
+ * - Actor Factory + Asset Data
+ * - Actor Factory + SoftObjectPtr
+ *
+ * Shortcuts:
+ * - Actor Class (searches for Factory)
+ * - Object (searches for Factory)
+ * - Asset Data (searches for Factory)
+ *
+ * Code use:
+ * - PlaceableItem (already contains FPlaceableItem)
  * 
  * Display Name - optional name to display
  * 
@@ -55,25 +63,55 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem
 {
 	GENERATED_BODY()
 
-	// Item display name override. Leave empty for default value.
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=9))
+	// Optional native name override. Native names must be unique within category. Leave empty for default.
+	UPROPERTY(EditAnywhere, DisplayName="Native Name Override", Category=Descriptor, meta=(DisplayPriority=100))
+	FName NativeName = NAME_None;
+	// Optional display name override. Leave empty for default.
+	UPROPERTY(EditAnywhere, DisplayName="Display Name Override", Category=Descriptor, meta=(DisplayPriority=101))
 	FText DisplayName = INVTEXT("");
-	// Item display order override. Leave empty for default order.
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=90))
+	// Optional display order override. Leave zero for default.
+	UPROPERTY(EditAnywhere, DisplayName="Sort Order Override", Category=Descriptor, meta=(DisplayPriority=102))
 	int32 SortOrder = 0;
 
 	FConfigPlaceableItem() = default;
+	
 	virtual ~FConfigPlaceableItem() = default;
-	virtual bool Identical(const FConfigPlaceableItem& Other) const { return false; }
+	
+	/**
+	 * Is current item identical to another. 
+	 */
+	virtual bool IdenticalTo(const FConfigPlaceableItem& Other) const;
 
-	virtual TSharedPtr<FPlaceableItem> MakeItem() const;
-
-	virtual FString ToString() const;
+	/**
+	 * Is current item contains valid data
+	 */
 	virtual bool IsValidData() const;
+	
+	/**
+	 * Construct placeable item out of current data. Possible return null in case of error.
+	 */
+	virtual TSharedPtr<FPlaceableItem> MakeItem() const;
+	
+	/**
+	 * Build string representation of current item for debug purposes
+	 */
+	virtual FString ToString() const;
+
+	bool operator==(const FConfigPlaceableItem& Other) const { return IdenticalTo(Other); }
+	bool operator!=(const FConfigPlaceableItem& Other) const { return !IdenticalTo(Other); }
 };
 
 using TConfigPlaceableItem = TInstancedStruct<FConfigPlaceableItem>;
 
+template<>
+struct TStructOpsTypeTraits<FConfigPlaceableItem>
+	: public TStructOpsTypeTraitsBase2<FConfigPlaceableItem>
+{
+	enum
+	{
+		WithIdenticalViaEquality = true
+	};
+};
 
 /**
  * Placeable item specifying already existing FPlaceableItem.
@@ -90,6 +128,7 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_Native : public FConfigPlaceable
 	FConfigPlaceableItem_Native() = default;
 	explicit FConfigPlaceableItem_Native(TSharedPtr<FPlaceableItem> InItem);
 
+	virtual bool IdenticalTo(const FConfigPlaceableItem& Other) const;
 	virtual bool IsValidData() const override;
 	virtual TSharedPtr<FPlaceableItem> MakeItem() const override;
 };
@@ -109,26 +148,29 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_FactoryClass : public FConfigPla
 
 	FConfigPlaceableItem_FactoryClass() = default;
 	explicit FConfigPlaceableItem_FactoryClass(TSoftClassPtr<UObject> InClass);
+	virtual bool IdenticalTo(const FConfigPlaceableItem& Other) const;
 	virtual bool IsValidData() const override;
 	virtual TSharedPtr<FPlaceableItem> MakeItem() const;
 };
 
 /**
  * Placeable item specifying Actor Factory Class and Asset to spawn.
+ *
+ * Not usable in Static config due to Asset Data
  */
 USTRUCT(BlueprintType)
-struct ENHANCEDPALETTE_API FConfigPlaceableItem_FactoryAsset : public FConfigPlaceableItem
+struct ENHANCEDPALETTE_API FConfigPlaceableItem_FactoryAssetData : public FConfigPlaceableItem
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=10, MustImplement="/Script/EditorFramework.AssetFactoryInterface"))
 	TSoftClassPtr<UObject> FactoryClass;
 	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=11, DisplayThumbnail=false))
-	FAssetData ObjectData;
+	FAssetData AssetData;
 
-	FConfigPlaceableItem_FactoryAsset() = default;
-	FConfigPlaceableItem_FactoryAsset(TSoftClassPtr<UObject> InFactoryClass, const FAssetData& InAssetData);
-
+	FConfigPlaceableItem_FactoryAssetData() = default;
+	FConfigPlaceableItem_FactoryAssetData(TSoftClassPtr<UObject> InFactoryClass, const FAssetData& InAssetData);
+	virtual bool IdenticalTo(const FConfigPlaceableItem& Other) const override;
 	virtual bool IsValidData() const override;
 	virtual TSharedPtr<FPlaceableItem> MakeItem() const;
 };
@@ -148,7 +190,7 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_FactoryObject : public FConfigPl
 
 	FConfigPlaceableItem_FactoryObject() = default;
 	FConfigPlaceableItem_FactoryObject(TSoftClassPtr<UObject> InFactoryClass, TSoftObjectPtr<UObject> InObject);
-
+	virtual bool IdenticalTo(const FConfigPlaceableItem& Other) const override;
 	virtual bool IsValidData() const override;
 	virtual TSharedPtr<FPlaceableItem> MakeItem() const;
 };
@@ -167,7 +209,8 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_ActorClass : public FConfigPlace
 	TSoftClassPtr<AActor> ActorClass;
 
 	FConfigPlaceableItem_ActorClass() = default;
-	explicit FConfigPlaceableItem_ActorClass( TSoftClassPtr<AActor> InClass);
+	explicit FConfigPlaceableItem_ActorClass(TSoftClassPtr<AActor> InClass);
+	virtual bool IdenticalTo(const FConfigPlaceableItem& Other) const override;
 	virtual bool IsValidData() const override;
 	virtual TSharedPtr<FPlaceableItem> MakeItem() const;
 };
@@ -187,6 +230,29 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_AssetObject : public FConfigPlac
 
 	FConfigPlaceableItem_AssetObject() = default;
 	explicit FConfigPlaceableItem_AssetObject(TSoftObjectPtr<UObject> InObject);
+	virtual bool IdenticalTo(const FConfigPlaceableItem& Other) const override;
+	virtual bool IsValidData() const override;
+	virtual TSharedPtr<FPlaceableItem> MakeItem() const;
+};
+
+/**
+ * Placeable item specifying asset data to spawn.
+ *
+ * Factory is automatically detected from actor class.
+ *
+ * Not usable in Static config due to Asset Data.
+ */
+USTRUCT(BlueprintType)
+struct ENHANCEDPALETTE_API FConfigPlaceableItem_AssetData : public FConfigPlaceableItem
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=10))
+	FAssetData AssetData;
+
+	FConfigPlaceableItem_AssetData() = default;
+	explicit FConfigPlaceableItem_AssetData(const FAssetData& InAssetData);
+	virtual bool IdenticalTo(const FConfigPlaceableItem& Other) const override;
 	virtual bool IsValidData() const override;
 	virtual TSharedPtr<FPlaceableItem> MakeItem() const;
 };
@@ -222,11 +288,11 @@ struct ENHANCEDPALETTE_API FConfigActorPlacementInfo
 
 	UPROPERTY(VisibleAnywhere, Category=Descriptor, meta=(EditCondition="false", EditConditionHides))
 	FString DisplayLabel;
+	
 	UPROPERTY(VisibleAnywhere, Category=Descriptor, meta=(MustImplement="/Script/EditorFramework.AssetFactoryInterface"))
-	// TSoftClassPtr<UObject> Factory;
 	FString Factory;
+	
 	UPROPERTY(VisibleAnywhere, Category=Descriptor, meta=(NoAssetPicker, DisplayThumbnail=false))
-	// TSoftObjectPtr<UObject> ObjectPath;
 	FString ObjectPath;
 };
 
@@ -276,20 +342,26 @@ public:
 	// Category sort order within toolbar (Old UI: Less - Left, New UI: Less - Higher)
 	UPROPERTY(EditAnywhere, Category=General)
 	int32 SortOrder = 0;
+
+	bool operator==(const FName& Key) const { return UniqueId == Key; }
 };
 
+/**
+ * Static category details
+ */
 USTRUCT()
 struct ENHANCEDPALETTE_API FStaticPlacementCategoryInfo : public FConfigPlacementCategoryInfo
 {
 	GENERATED_BODY()
 
 	// List of elements to be displayed within category
-	UPROPERTY(EditAnywhere, Category=General, meta=(DisplayAfter="SortOrder", ExcludeBaseStruct=true))
+	UPROPERTY(EditAnywhere, Category=General, NoClear, meta=(DisplayAfter="SortOrder", ExcludeBaseStruct=true, GetDisallowedClasses="GetUnUsableStaticItems"))
 	TArray<TInstancedStruct<FConfigPlaceableItem>> Items;
-
-	bool operator==(const FName& Key) const { return UniqueId == Key; }
 };
 
+/**
+ * Engine category details
+ */
 USTRUCT()
 struct ENHANCEDPALETTE_API FStandardPlacementCategoryInfo
 {
@@ -303,6 +375,7 @@ struct ENHANCEDPALETTE_API FStandardPlacementCategoryInfo
 	int32 Order = 0;
 
 	bool operator==(const FName& Key) const { return UniqueId == Key; }
+	bool CanEditChange(const FProperty* InProperty) const;
 	bool CanEditChange(const FEditPropertyChain& PropertyChain) const;
 };
 
@@ -380,6 +453,11 @@ public:
 	virtual FName GetCategoryName() const override { return "Plugins"; }
 	virtual bool SupportsAutoRegistration() const override { return false; }
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
+	UFUNCTION()
+	static TArray<TSoftObjectPtr<UScriptStruct>> GetUsableStaticItems();
+	UFUNCTION()
+	static TArray<TSoftObjectPtr<UScriptStruct>> GetUnUsableStaticItems();
 
 	// Action to force category rediscover
 	UFUNCTION(BlueprintCallable, Category=Misc, meta=(FixedCallInEditor, DisplayName="Trigger Discover"))

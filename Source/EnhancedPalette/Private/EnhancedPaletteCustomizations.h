@@ -37,6 +37,7 @@ private:
 class FSimpleIconSelectorCustomization : public IPropertyTypeCustomization
 {
 	using ThisClass = FSimpleIconSelectorCustomization;
+	friend class UEnhancedPaletteLibrary;
 	
 #if WITH_GATHER_ITEMS_MAGIC
 	using ItemType = FSimpleIconSelector;

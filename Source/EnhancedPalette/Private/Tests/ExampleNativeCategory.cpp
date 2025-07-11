@@ -48,28 +48,28 @@ void UExampleNativeCategory::NativeTick()
 	}
 }
 
-void UExampleNativeCategory::NativeGatherItems(TArray<TConfigPlaceableItem>& OutResult)
+void UExampleNativeCategory::NativeGatherItems()
 {
 	// Preferred - construct FPlaceableItem directly with desired params
 	// More Examples can be found in PlacementModeModule.cpp FPlacementModeModule::StartupModule
 	
 	// PlaceableItem arg descriptor
-	AddDescriptor_Item<FPlaceableItem>(*UActorFactoryEmptyActor::StaticClass(), TOptional<int32>());
+	AddPlaceableItem<FPlaceableItem>(*UActorFactoryEmptyActor::StaticClass(), TOptional<int32>());
 	
 	// PlaceableItem descriptor
-	AddDescriptor_Native(MakeShared<FPlaceableItem>(*UActorFactoryPawn::StaticClass(), TOptional<int32>()));
+	AddPlaceableItemPtr(MakeShared<FPlaceableItem>(*UActorFactoryPawn::StaticClass(), TOptional<int32>()));
 
 	// Alternate - use blueprint api
 	
 	// Actor factory descriptor
-	AddDescriptor_FactoryClass(UActorFactoryCharacter::StaticClass(),
-		INVTEXT("Superman"));
+	AddFactoryClass(UActorFactoryCharacter::StaticClass(),
+		NAME_None, INVTEXT("SupermanCharacter"));
 	//
-	AddDescriptor_FactoryAsset(UActorFactoryBasicShape::StaticClass(),
+	AddFactoryWithAsset(UActorFactoryBasicShape::StaticClass(),
 		FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicSphere.ToString())),
-		INVTEXT("ShapeAsset"));
+		NAME_None, INVTEXT("ShapeAssetSphere"));
 	//
-	AddDescriptor_FactoryObject(UActorFactoryBasicShape::StaticClass(),
+	AddFactoryWithObject(UActorFactoryBasicShape::StaticClass(),
 		LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicCube.ToString()),
-		INVTEXT("ShapeObject"));
+		NAME_None, INVTEXT("ShapeObjectCube"));
 }

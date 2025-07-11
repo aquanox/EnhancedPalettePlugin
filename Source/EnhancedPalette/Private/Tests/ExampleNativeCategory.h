@@ -17,5 +17,5 @@ public:
 
 	virtual void NativeInitialize() override;
 	virtual void NativeTick() override;
-	virtual void NativeGatherItems(TArray<TConfigPlaceableItem>& OutResult) override;
+	virtual void NativeGatherItems() override;
 };

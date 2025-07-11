@@ -4,6 +4,7 @@
 #include "EnhancedPaletteLibrary.h"
 #include "EnhancedPaletteSubsystem.h"
 #include "EnhancedPaletteCategory.h"
+#include "EnhancedPaletteCustomizations.h"
 
 void UEnhancedPaletteLibrary::RequestDiscoverCategories()
 {
@@ -50,6 +51,20 @@ bool UEnhancedPaletteLibrary::RegisterExternalCategory(FName UniqueId, FText Dis
 		return true;
 	}
 	return false;
+}
+
+TArray<FString> UEnhancedPaletteLibrary::K2_IconSelectorHelper()
+{
+#if WITH_GATHER_ITEMS_MAGIC
+	TArray<FString> Temp;
+	for (const auto& Item : FSimpleIconSelectorCustomization::GatherIcons())
+	{
+		Temp.Emplace(Item->IconCode);
+	}
+	return Temp;
+#else
+	return FSimpleIconSelectorCustomization::GatherIcons();
+#endif
 }
 
 bool UEnhancedPaletteLibrary::UnregisterExternalCategory(FName UniqueId)
