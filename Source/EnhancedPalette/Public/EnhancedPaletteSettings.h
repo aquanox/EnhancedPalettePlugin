@@ -66,13 +66,13 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem
 	GENERATED_BODY()
 
 	// Optional native name override. Native names must be unique within category. Leave empty for default.
-	UPROPERTY(EditAnywhere, DisplayName="Native Name Override", Category=Descriptor, meta=(DisplayPriority=100))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="Native Name Override", Category=Descriptor, meta=(DisplayPriority=100))
 	FName NativeName = NAME_None;
 	// Optional display name override. Leave empty for default.
-	UPROPERTY(EditAnywhere, DisplayName="Display Name Override", Category=Descriptor, meta=(DisplayPriority=101))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="Display Name Override", Category=Descriptor, meta=(DisplayPriority=101))
 	FText DisplayName = INVTEXT("");
 	// Optional display order override. Leave zero for default.
-	UPROPERTY(EditAnywhere, DisplayName="Sort Order Override", Category=Descriptor, meta=(DisplayPriority=102))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="Sort Order Override", Category=Descriptor, meta=(DisplayPriority=102))
 	int32 SortOrder = 0;
 
 	FConfigPlaceableItem() = default;
@@ -145,7 +145,7 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_FactoryClass : public FConfigPla
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=10, MustImplement="/Script/EditorFramework.AssetFactoryInterface"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Descriptor, meta=(DisplayPriority=10, MustImplement="/Script/EditorFramework.AssetFactoryInterface"))
 	TSoftClassPtr<UObject> FactoryClass;
 
 	FConfigPlaceableItem_FactoryClass() = default;
@@ -165,9 +165,9 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_FactoryAssetData : public FConfi
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=10, MustImplement="/Script/EditorFramework.AssetFactoryInterface"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Descriptor, meta=(DisplayPriority=10, MustImplement="/Script/EditorFramework.AssetFactoryInterface"))
 	TSoftClassPtr<UObject> FactoryClass;
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=11, DisplayThumbnail=false))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Descriptor, meta=(DisplayPriority=11, DisplayThumbnail=false))
 	FAssetData AssetData;
 
 	FConfigPlaceableItem_FactoryAssetData() = default;
@@ -185,9 +185,9 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_FactoryObject : public FConfigPl
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=10, MustImplement="/Script/EditorFramework.AssetFactoryInterface"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Descriptor, meta=(DisplayPriority=10, MustImplement="/Script/EditorFramework.AssetFactoryInterface"))
 	TSoftClassPtr<UObject> FactoryClass;
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=11, DisplayThumbnail=false))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Descriptor, meta=(DisplayPriority=11, DisplayThumbnail=false))
 	TSoftObjectPtr<UObject> Object;
 
 	FConfigPlaceableItem_FactoryObject() = default;
@@ -207,7 +207,7 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_ActorClass : public FConfigPlace
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=10))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Descriptor, meta=(DisplayPriority=10))
 	TSoftClassPtr<AActor> ActorClass;
 
 	FConfigPlaceableItem_ActorClass() = default;
@@ -227,7 +227,7 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_AssetObject : public FConfigPlac
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=10))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Descriptor, meta=(DisplayPriority=10))
 	TSoftObjectPtr<UObject> Object;
 
 	FConfigPlaceableItem_AssetObject() = default;
@@ -249,7 +249,7 @@ struct ENHANCEDPALETTE_API FConfigPlaceableItem_AssetData : public FConfigPlacea
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Descriptor, meta=(DisplayPriority=10))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Descriptor, meta=(DisplayPriority=10))
 	FAssetData AssetData;
 
 	FConfigPlaceableItem_AssetData() = default;
