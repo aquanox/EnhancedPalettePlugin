@@ -95,7 +95,6 @@ void UEnhancedPaletteSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	UEnhancedPaletteSettings* Settings = GetMutableDefault<UEnhancedPaletteSettings>();
 	//GConfig->LoadFile(Settings->GetClass()->GetConfigName());
 	//Settings->LoadConfig();
-	Settings->OnUserAction.BindUObject(this, &ThisClass::OnSettingsPanelCommand);
 
 	ISettingsModule& SettingsModule = FModuleManager::LoadModuleChecked<ISettingsModule>("Settings");
 	auto Section = SettingsModule.RegisterSettings(

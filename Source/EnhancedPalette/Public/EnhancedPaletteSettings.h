@@ -446,8 +446,6 @@ public:
 	UPROPERTY(Transient)
 	TArray<FName> CachedKnownCategories;
 	
-	// Hook for user actions
-	TDelegate<void(FName)> OnUserAction;
 public:
 	UEnhancedPaletteSettings();
 
@@ -460,20 +458,4 @@ public:
 	static TArray<TSoftObjectPtr<UScriptStruct>> GetUsableStaticItems();
 	UFUNCTION()
 	static TArray<TSoftObjectPtr<UScriptStruct>> GetUnUsableStaticItems();
-
-	// Action to force category rediscover
-	UFUNCTION(BlueprintCallable, Category=Misc, meta=(FixedCallInEditor, DisplayName="Trigger Discover"))
-	void TriggerDiscover();
-	// Action to force category content repopulate
-	UFUNCTION(BlueprintCallable, Category=Misc, meta=(FixedCallInEditor, DisplayName="Trigger Populate Items"))
-	void TriggerPopulateItems();
-	// Action to force category registration update
-	UFUNCTION(BlueprintCallable, Category=Misc, meta=(FixedCallInEditor, DisplayName="Trigger Update Categories"))
-	void TriggerUpdateData();
-	// Action to force PlaceActors widget update for UE5.5+
-	UFUNCTION(BlueprintCallable, Category=Misc, meta=(FixedCallInEditor, DisplayName="Trigger Refresh Widget"))
-	void RefreshToolbar();
-	// Action to quickly reset RecentlyPlacedActors category and refresh panel
-	UFUNCTION(BlueprintCallable, Category=Misc, meta=(FixedCallInEditor, DisplayName="Clear Recently Placed"))
-	void ClearRecentlyPlaced();
 };

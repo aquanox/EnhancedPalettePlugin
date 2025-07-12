@@ -7,29 +7,6 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EnhancedPaletteSettings)
 
-/*
- *
-FPlaceableItem(TScriptInterface<IAssetFactoryInterface> InAssetFactory,
-		 const FAssetData& InAssetData,
-		 FName InClassThumbnailBrushOverride,
-		 FName InClassIconBrushOverride,
-		 TOptional<FLinearColor> InAssetTypeColorOverride = TOptional<FLinearColor>(),
-		 TOptional<int32> InSortOrder,
-		 TOptional<FText> InDisplayName = TOptional<FText>())
-
-FPlaceableItem(UClass& InActorFactoryClass,
-		const FAssetData& InAssetData,
-		FName InClassThumbnailBrushOverride = NAME_None,
-		FName InClassIconBrushOverride = NAME_None,
-		TOptional<FLinearColor> InAssetTypeColorOverride = TOptional<FLinearColor>(),
-		TOptional<int32> InSortOrder = TOptional<int32>(),
-		TOptional<FText> InDisplayName = TOptional<FText>()
-	 )
-
-	 @see FPlaceableItem::FPlaceableItem
- *
- */
-
 /**
  * Helper to assign common optional overrides for FPlaceableItem
  * @param Self 
@@ -389,9 +366,6 @@ bool FStandardPlacementCategoryInfo::CanEditChange(const FEditPropertyChain& Pro
 
 UEnhancedPaletteSettings::UEnhancedPaletteSettings()
 {
-#if !WITH_ARCHETYPE_EXPERIMENT
-	ClearFlags(RF_ArchetypeObject);
-#endif
 }
 
 void UEnhancedPaletteSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -417,29 +391,3 @@ TArray<TSoftObjectPtr<UScriptStruct>> UEnhancedPaletteSettings::GetUnUsableStati
 	Result.Add(FConfigPlaceableItem_AssetData::StaticStruct());
 	return Result;
 }
-
-void UEnhancedPaletteSettings::TriggerUpdateData()
-{
-	OnUserAction.ExecuteIfBound(SettingsCommand::UpdateCategores);
-}
-
-void UEnhancedPaletteSettings::RefreshToolbar()
-{
-	OnUserAction.ExecuteIfBound(SettingsCommand::UpdateToolbar);
-}
-
-void UEnhancedPaletteSettings::ClearRecentlyPlaced()
-{
-	OnUserAction.ExecuteIfBound(SettingsCommand::ClearRecent);
-}
-
-void UEnhancedPaletteSettings::TriggerPopulateItems()
-{
-	OnUserAction.ExecuteIfBound(SettingsCommand::PopulateCategories);
-}
-
-void UEnhancedPaletteSettings::TriggerDiscover()
-{
-	OnUserAction.ExecuteIfBound(SettingsCommand::DiscoverCategories);
-}
-
