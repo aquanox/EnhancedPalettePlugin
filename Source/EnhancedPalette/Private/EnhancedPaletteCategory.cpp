@@ -104,10 +104,7 @@ void UEnhancedPaletteCategory::GatherItems(TArray<TConfigPlaceableItem>& OutResu
 
 	{
 		FEditorScriptExecutionGuard Guard;
-
-		// native gather
 		NativeGatherItems();
-		// bp gather, tbd 
 		K2_GatherItems();
 	}
 
@@ -119,41 +116,75 @@ void UEnhancedPaletteCategory::NativeGatherItems()
 {
 }
 
-void UEnhancedPaletteCategory::AddInternal(TConfigPlaceableItem&& Desc)
+bool UEnhancedPaletteCategory::CanAddItem(const TConfigPlaceableItem& Item)
 {
 	if (!bGathering)
 	{
 		FFrame::KismetExecutionMessage(TEXT("Add() can be used only during Gather Items"), ELogVerbosity::Warning);
-		return;
+		return false;
 	}
 
-	if (!Desc.IsValid() || !Desc.Get<FConfigPlaceableItem>().IsValidData())
+	if (!Item.IsValid() || !Item.Get<FConfigPlaceableItem>().IsValidData())
 	{
 		UE_LOG(LogEnhancedPalette, Warning, TEXT("Failed to add descriptor: data is invalid"));
-		return;
-	}
-
-	if (AutoOrder.IsSet())
-	{
-		Desc.GetMutable<FConfigPlaceableItem>().SortOrder = ++AutoOrder.GetValue();
+		return false;
 	}
 
 	for (const TConfigPlaceableItem& Existing : LocalDescriptors)
 	{
-		if (Existing.GetScriptStruct() == Desc.GetScriptStruct()
-			&& Existing.Get<FConfigPlaceableItem>().IdenticalTo(Desc.Get<FConfigPlaceableItem>()))
+		if (Existing.GetScriptStruct() == Item.GetScriptStruct()
+			&& Existing.Get<FConfigPlaceableItem>().IdenticalTo(Item.Get<FConfigPlaceableItem>()))
 		{
 			UE_LOG(LogEnhancedPalette, Warning, TEXT("Failed to add descriptor: duplicate"));
-			return;
+			return false;
 		}
 	}
 
-	LocalDescriptors.Emplace(MoveTemp(Desc));
+	return true;
 }
 
-void UEnhancedPaletteCategory::AddItem(TInstancedStruct<FConfigPlaceableItem> ItemStruct)
+void UEnhancedPaletteCategory::PostItemAdded(TConfigPlaceableItem& Item)
 {
-	AddInternal(MoveTemp(ItemStruct));
+	if (AutoOrder.IsSet())
+	{
+		Item.GetMutable<FConfigPlaceableItem>().SortOrder = ++AutoOrder.GetValue();
+	}
+}
+
+void UEnhancedPaletteCategory::AddInternal(const TConfigPlaceableItem& Item)
+{
+	if (CanAddItem(Item))
+	{
+		PostItemAdded(LocalDescriptors.Emplace_GetRef(Item));
+	}
+}
+
+void UEnhancedPaletteCategory::AddInternal(TConfigPlaceableItem&& Item)
+{
+	if (CanAddItem(Item))
+	{
+		PostItemAdded(LocalDescriptors.Emplace_GetRef(MoveTemp(Item)));
+	}
+}
+
+void UEnhancedPaletteCategory::AddItem(const TInstancedStruct<FConfigPlaceableItem>& Item)
+{
+	AddInternal(Item);
+}
+
+void UEnhancedPaletteCategory::AddItems(const TArray<TInstancedStruct<FConfigPlaceableItem>>& ItemStructs)
+{
+	for (const TInstancedStruct<FConfigPlaceableItem>& ItemStruct : ItemStructs)
+	{
+		AddInternal(ItemStruct);
+	}
+}
+
+void UEnhancedPaletteCategory::AddPlaceableItemPtr(TSharedPtr<FPlaceableItem> InItem)
+{
+	FConfigPlaceableItem_Native Cfg;
+	Cfg.Item = MoveTemp(InItem);
+	AddInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_Native>(Cfg));
 }
 
 void UEnhancedPaletteCategory::AddFactoryClass(TSoftClassPtr<UActorFactory> FactoryClass, FName NativeName, FText ItemName, int32 ItemSortOrder)

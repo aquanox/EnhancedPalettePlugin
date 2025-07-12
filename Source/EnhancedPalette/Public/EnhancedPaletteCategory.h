@@ -122,16 +122,14 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category=EnhancedPalette, meta=(DisplayName="Gather Items"))
 	void K2_GatherItems();
 
-	void AddInternal(TConfigPlaceableItem&& Desc);
-
 	/**
 	 * Add native type descriptor (constructs FPlaceableItem) 
 	 */
-	template <typename T = FPlaceableItem, typename... TArgs>
-	void AddPlaceableItem(TArgs&&... Args)
+	template <typename InObjectType = FPlaceableItem, typename... InArgTypes>
+	void AddPlaceableItem(InArgTypes&&... Args)
 	{
 		FConfigPlaceableItem_Native Cfg;
-		Cfg.Item = MakeShared<T>(Forward<TArgs>(Args)...);
+		Cfg.Item = MakeShared<InObjectType>(Forward<InArgTypes>(Args)...);
 		AddInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_Native>(Cfg));
 	}
 
@@ -139,31 +137,46 @@ public:
 	 * Add native type descriptor (directly wraps FPlaceableItem) 
 	 * @param InItem 
 	 */
-	void AddPlaceableItemPtr(TSharedPtr<FPlaceableItem> InItem)
+	void AddPlaceableItemPtr(TSharedPtr<FPlaceableItem> InItem);
+
+	/**
+	 * Add array of native type descriptors (directly wraps FPlaceableItem) 
+	 * @param InItems 
+	 */
+	template<typename T = FPlaceableItem>
+	void AddPlaceableItemPtrs(const TArray<TSharedPtr<T>>& InItems)
 	{
-		FConfigPlaceableItem_Native Cfg;
-		Cfg.Item = MoveTemp(InItem);
-		AddInternal(TConfigPlaceableItem::Make<FConfigPlaceableItem_Native>(Cfg));
+		for (const TSharedPtr<T>& InItem : InItems)
+		{
+			AddPlaceableItemPtr(InItem);
+		}
 	}
 
 	/**
-	 * Templated version of AddItem
+	 * Templated version of AddItem.
 	 */
-	template <typename T = FConfigPlaceableItem, typename... TArgs>
+	template <typename T, typename... TArgs>
 	void AddItem(TArgs&&... Args)
 	{
 		TInstancedStruct<FConfigPlaceableItem> Item;
 		Item.template InitializeAs<T>(Forward<TArgs>(Args)...);
-		AddInternal(MoveTemp(Item));
+		AddInternal(Item);
 	}
-
+	
 	/**
 	 * Add generic descriptor from instanced struct
-	 * @param ItemStruct Input descriptor
+	 * @param Item Input descriptor
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
-		meta=(DisplayName="Add Item", Keywords="adi addi", AdvancedDisplay=1, BlueprintProtected=true))
-	void AddItem(TInstancedStruct<FConfigPlaceableItem> ItemStruct);
+		meta=(DisplayName="Add Item", Keywords="adi addi", BlueprintProtected=true))
+	void AddItem(const TInstancedStruct<FConfigPlaceableItem>& Item);
+
+	/**
+	 * 
+	 */
+	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
+		meta=(DisplayName="Add Items", Keywords="adi addi", BlueprintProtected=true))
+	void AddItems(const TArray<TInstancedStruct<FConfigPlaceableItem>>& Items);
 
 	/**
 	 * Add item descriptor with Factory Class
@@ -256,8 +269,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette, meta=(BlueprintProtected=true))
 	void SortItems();
-
-private:
+	
+protected:
+	virtual bool CanAddItem(const TConfigPlaceableItem& Item);
+	virtual void PostItemAdded(TConfigPlaceableItem& Item);
+	
+	void AddInternal(const TConfigPlaceableItem& Item);
+	void AddInternal(TConfigPlaceableItem&& Item);
+	
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette, meta=(BlueprintProtected=true))
 	void PrintDebugInfo();
 };
