@@ -44,7 +44,8 @@ public class EnhancedPalette : ModuleRules
 			"WorkspaceMenuStructure",
 			"WidgetRegistration",
 			"ToolWidgets",
-			"PropertyEditor"
+			"PropertyEditor",
+			"BlueprintGraph"
 		} );
 
 		if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion < 5)

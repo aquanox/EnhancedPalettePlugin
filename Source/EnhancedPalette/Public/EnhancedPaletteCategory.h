@@ -258,6 +258,6 @@ public:
 	void SortItems();
 
 private:
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category=EnhancedPalette, meta=(BlueprintProtected=true))
 	void PrintDebugInfo();
 };

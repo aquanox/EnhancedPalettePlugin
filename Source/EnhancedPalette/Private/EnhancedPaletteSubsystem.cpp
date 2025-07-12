@@ -22,6 +22,45 @@
 #include "Subsystems/EditorAssetSubsystem.h"
 #include "Subsystems/PlacementSubsystem.h"
 #include "Widgets/SWidget.h"
+#include "HAL/IConsoleManager.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(EnhancedPaletteSubsystem)
+
+static FAutoConsoleCommand EPP_DiscoverCategories(
+	TEXT("EPP.DiscoverCategories"),
+	TEXT("Request discover palette categories"),
+	FConsoleCommandDelegate::CreateLambda([]() {
+		UEnhancedPaletteSubsystem::Get()->OnSettingsPanelCommand(SettingsCommand::DiscoverCategories);
+	})
+);
+static FAutoConsoleCommand EPP_PopulateCategories(
+	TEXT("EPP.PopulateCategories"),
+	TEXT("Request update category content"),
+	FConsoleCommandDelegate::CreateLambda([]() {
+		UEnhancedPaletteSubsystem::Get()->OnSettingsPanelCommand(SettingsCommand::PopulateCategories);
+	})
+);
+static FAutoConsoleCommand EPP_UpdateCategores(
+	TEXT("EPP.UpdateCategores"),
+	TEXT("Request update category details"),
+	FConsoleCommandDelegate::CreateLambda([]() {
+		UEnhancedPaletteSubsystem::Get()->OnSettingsPanelCommand(SettingsCommand::UpdateCategores);
+	})
+);
+static FAutoConsoleCommand EPP_UpdateToolbar(
+	TEXT("EPP.UpdateToolbar"),
+	TEXT("Request update toolbar widget"),
+	FConsoleCommandDelegate::CreateLambda([]() {
+		UEnhancedPaletteSubsystem::Get()->OnSettingsPanelCommand(SettingsCommand::UpdateToolbar);
+	})
+);
+static FAutoConsoleCommand EPP_ClearRecent(
+	TEXT("EPP.ClearRecent"),
+	TEXT("Request clear recently placed actors list"),
+	FConsoleCommandDelegate::CreateLambda([]() {
+		UEnhancedPaletteSubsystem::Get()->OnSettingsPanelCommand(SettingsCommand::ClearRecent);
+	})
+);
 
 UEnhancedPaletteSubsystem* UEnhancedPaletteSubsystem::Get()
 {

@@ -2,8 +2,10 @@
 
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
+#include "EdGraphSchema_K2.h"
 #include "EnhancedPaletteLibrary.h"
 #include "EnhancedPaletteSettings.h"
+#include "K2Node_CallFunction.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "SSearchableCombobox.h"
@@ -11,6 +13,8 @@
 #include "PropertyCustomizationHelpers.h"
 #include "Styling/SlateStyle.h"
 #include "Styling/SlateStyleRegistry.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SWrapBox.h"
 
 using FBrushResourcesMap = TMap<FName, FSlateBrush*>;
 UE_DEFINE_PRIVATE_MEMBER_PTR(FBrushResourcesMap, GBrushResourcesMap, FSlateStyleSet, BrushResources);
@@ -47,7 +51,6 @@ FSimpleIconSelector::FSimpleIconSelector(const FName& InStyleSet, const FName& I
 	IconCode = MakeSlateIconCode(InStyleSet, InStyle);
 }
 
-
 FSlateIcon FSimpleIconSelector::ToSlateIcon() const
 {
 #if WITH_GATHER_ITEMS_MAGIC
@@ -75,20 +78,25 @@ void EnhancedPaletteCustomizations::Register()
 	Module.RegisterCustomPropertyTypeLayout(FSimpleIconSelector::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FSimpleIconSelectorCustomization::Make));
 
-	FRegisterCustomClassLayoutParams Params {  TNumericLimits<int32>::Max() };
+#if WITH_CUSTOM_CIE_EXPERIMENT
 	Module.RegisterCustomClassLayout(UEnhancedPaletteSettings::StaticClass()->GetFName(),
-		FOnGetDetailCustomizationInstance::CreateStatic(&FEnhancedPaletteSettingsCustomization::Make), Params);
+		FOnGetDetailCustomizationInstance::CreateStatic(&FEnhancedPaletteSettingsCustomization::Make));
+#endif
 }
 
 void EnhancedPaletteCustomizations::Unregister()
 {
 	auto& Module = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	Module.UnregisterCustomPropertyTypeLayout(FSimpleIconSelector::StaticStruct()->GetFName());
+#if WITH_CUSTOM_CIE_EXPERIMENT
 	Module.UnregisterCustomPropertyTypeLayout(UEnhancedPaletteSettings::StaticClass()->GetFName());
+#endif
 }
 
 // =================================================================================================
 // =================================================================================================
+
+#if WITH_CUSTOM_CIE_EXPERIMENT
 
 TSharedRef<IDetailCustomization> FEnhancedPaletteSettingsCustomization::Make()
 {
@@ -106,19 +114,13 @@ void FEnhancedPaletteSettingsCustomization::CustomizeDetails(IDetailLayoutBuilde
 		DetailBuilder.GetBaseClass(),
 		CallInEditorFunctions);
 
-	PropertyCustomizationHelpers::AddFunctionCallWidgets(
+	FEnhancedPaletteSettingsCustomization::AddFunctionCallWidgets(
 		DetailBuilder,
-		CallInEditorFunctions,
-		FPropertyFunctionCallDelegates(
-			FPropertyFunctionCallDelegates::FOnGetExecutionContext::CreateSP(this, &ThisClass::GetFunctionCallExecutionContext)
-		));
+		CallInEditorFunctions);
 }
 
 void FEnhancedPaletteSettingsCustomization::GetCallInEditorFunctionsForClass(const UClass* InClass, TArray<UFunction*>& OutCallInEditorFunctions)
 {
-	// metadata tag for defining sort order of function buttons within a Category
-	static const FName NAME_DisplayPriority("DisplayPriority");
-
 	// Get all of the functions we need to display (done ahead of time so we can sort them)
 	for (TFieldIterator<UFunction> FunctionIter(InClass, EFieldIterationFlags::IncludeSuper); FunctionIter; ++FunctionIter)
 	{
@@ -139,43 +141,95 @@ void FEnhancedPaletteSettingsCustomization::GetCallInEditorFunctionsForClass(con
 			}
 		}
 	}
-
-	if (OutCallInEditorFunctions.IsEmpty())
-	{
-		return;
-	}
-
-	// FBlueprintMetadata::MD_FunctionCategory
-	static const FName NAME_FunctionCategory(TEXT("Category"));
-
-	// Sort the functions by category and then by DisplayPriority meta tag, and then by name
-	OutCallInEditorFunctions.Sort([](const UFunction& A, const UFunction& B)
-	{
-		const int32 CategorySort = A.GetMetaData(NAME_FunctionCategory).Compare(B.GetMetaData(NAME_FunctionCategory));
-		if (CategorySort != 0)
-		{
-			return (CategorySort <= 0);
-		}
-		else
-		{
-			const FString DisplayPriorityAStr = A.GetMetaData(NAME_DisplayPriority);
-			int32 DisplayPriorityA = (DisplayPriorityAStr.IsEmpty() ? MAX_int32 : FCString::Atoi(*DisplayPriorityAStr));
-			if (DisplayPriorityA == 0 && !FCString::IsNumeric(*DisplayPriorityAStr))
-			{
-				DisplayPriorityA = MAX_int32;
-			}
-
-			const FString DisplayPriorityBStr = B.GetMetaData(NAME_DisplayPriority);
-			int32 DisplayPriorityB = (DisplayPriorityBStr.IsEmpty() ? MAX_int32 : FCString::Atoi(*DisplayPriorityBStr));
-			if (DisplayPriorityB == 0 && !FCString::IsNumeric(*DisplayPriorityBStr))
-			{
-				DisplayPriorityB = MAX_int32;
-			}
-
-			return (DisplayPriorityA == DisplayPriorityB) ? (A.GetName() <= B.GetName()) : (DisplayPriorityA <= DisplayPriorityB);
-		}
-	});
 }
+
+void FEnhancedPaletteSettingsCustomization::AddFunctionCallWidgets(IDetailLayoutBuilder& DetailBuilder, TArray<UFunction*> CallInEditorFunctions)
+{
+	if (!CallInEditorFunctions.Num()) return;
+	
+#if UE_VERSION_NEWER_THAN_OR_EQUAL(5, 5, 0)
+	PropertyCustomizationHelpers::AddFunctionCallWidgets(
+		DetailBuilder,
+		CallInEditorFunctions,
+		FPropertyFunctionCallDelegates(
+			FPropertyFunctionCallDelegates::FOnGetExecutionContext::CreateSP(this, &ThisClass::GetFunctionCallExecutionContext)
+		));
+#else
+		struct FCategoryEntry
+		{
+			FName CategoryName;
+			FName RowTag;
+			TSharedPtr<SWrapBox> WrapBox;
+			FTextBuilder FunctionSearchText;
+
+			FCategoryEntry(FName InCategoryName) : CategoryName(InCategoryName)
+			{
+				WrapBox = SNew(SWrapBox).PreferredSize(2000).UseAllottedSize(true);
+			}
+		};
+
+		// Build up a set of functions for each category, accumulating search text and buttons in a wrap box
+		FName ActiveCategory;
+		TArray<FCategoryEntry, TInlineAllocator<8>> CategoryList;
+		for (UFunction* Function : CallInEditorFunctions)
+		{
+			FName FunctionCategoryName(NAME_Default);
+			if (Function->HasMetaData(FBlueprintMetadata::FBlueprintMetadata::MD_FunctionCategory))
+			{
+				FunctionCategoryName = FName(*Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory));
+			}
+
+			if (FunctionCategoryName != ActiveCategory)
+			{
+				ActiveCategory = FunctionCategoryName;
+				CategoryList.Emplace(FunctionCategoryName);
+			}
+			FCategoryEntry& CategoryEntry = CategoryList.Last();
+
+			const FText ButtonCaption = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
+
+			TArray<TWeakObjectPtr<UObject>> WeakExecutionObjects = SelectedObjectsList;
+			TWeakObjectPtr<UFunction> WeakFunctionPtr(Function);
+			CategoryEntry.WrapBox->AddSlot()
+			.Padding(0.0f, 0.0f, 5.0f, 3.0f)
+			[
+				SNew(SButton)
+				.Text(ButtonCaption)
+				.OnClicked(FOnClicked::CreateSPLambda(this, [this, WeakFunctionPtr, WeakExecutionObjects]()
+				{
+					if (UFunction* Function = WeakFunctionPtr.Get())
+					{
+						FEditorScriptExecutionGuard ScriptGuard;
+						for (const TWeakObjectPtr<UObject>& WeakExecutionObject : WeakExecutionObjects)
+						{
+							if (UObject* ExecutionObject = WeakExecutionObject.Get())
+							{
+								ensure(Function->ParmsSize == 0);
+								ExecutionObject->ProcessEvent(Function, nullptr);
+							}
+						}
+					}
+					return FReply::Handled();
+				}))
+			];
+
+			CategoryEntry.RowTag = Function->GetFName();
+		}
+		
+		// Now edit the categories, adding the button strips to the details panel
+		for (FCategoryEntry& CategoryEntry : CategoryList)
+		{
+			IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory(CategoryEntry.CategoryName);
+			CategoryBuilder.AddCustomRow(CategoryEntry.FunctionSearchText.ToText())
+			.RowTag(CategoryEntry.RowTag)
+			[
+				CategoryEntry.WrapBox.ToSharedRef()
+			];
+		}
+#endif
+}
+
+#endif
 
 // =================================================================================================
 // =================================================================================================

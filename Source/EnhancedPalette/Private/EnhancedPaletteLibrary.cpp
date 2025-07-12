@@ -1,10 +1,12 @@
 ﻿// Copyright 2025, Aquanox.
 
-
 #include "EnhancedPaletteLibrary.h"
+#include "EnhancedPaletteGlobals.h"
 #include "EnhancedPaletteSubsystem.h"
 #include "EnhancedPaletteCategory.h"
 #include "EnhancedPaletteCustomizations.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(EnhancedPaletteLibrary)
 
 void UEnhancedPaletteLibrary::RequestDiscoverCategories()
 {

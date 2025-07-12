@@ -8,15 +8,20 @@
 // then can drop IconCode and use StyleSet/Style name pair like in SlateIconReference
 #define WITH_GATHER_ITEMS_MAGIC 0
 
+// TBD: CallInEditor functions broken and unusable in devsettings
+#define WITH_CUSTOM_CIE_EXPERIMENT 0
+
 namespace EnhancedPaletteCustomizations
 {
-	static void Register();
-	static void Unregister();
+	void Register();
+	void Unregister();
 }
 
 struct FSimpleIconSelector;
 class SSearchableComboBox;
 class SWidget;
+
+#if WITH_CUSTOM_CIE_EXPERIMENT
 
 // BUG: Fixes broken CallInEditor functions in devsettings UE5.5+ yey~
 class FEnhancedPaletteSettingsCustomization : public IDetailCustomization
@@ -29,9 +34,12 @@ public:
 private:
 	void GetCallInEditorFunctionsForClass(const UClass* InClass, TArray<UFunction*>& OutCallInEditorFunctions);
 	TArray<TWeakObjectPtr<UObject>> GetFunctionCallExecutionContext(TWeakObjectPtr<UFunction> InWeakFunction) const { return SelectedObjectsList; }
-
+	void AddFunctionCallWidgets(IDetailLayoutBuilder& DetailBuilder, TArray<UFunction*> CallInEditorFunctions);
+	
 	TArray<TWeakObjectPtr<UObject>> SelectedObjectsList;
 };
+
+#endif
 
 // Customization for simple slate icon reference stub to make plugin self-contained 
 class FSimpleIconSelectorCustomization : public IPropertyTypeCustomization

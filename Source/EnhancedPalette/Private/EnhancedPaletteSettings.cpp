@@ -5,6 +5,8 @@
 #include "PrivateAccessHelper.h"
 #include "Subsystems/PlacementSubsystem.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(EnhancedPaletteSettings)
+
 /*
  *
 FPlaceableItem(TScriptInterface<IAssetFactoryInterface> InAssetFactory,
@@ -387,7 +389,7 @@ bool FStandardPlacementCategoryInfo::CanEditChange(const FEditPropertyChain& Pro
 
 UEnhancedPaletteSettings::UEnhancedPaletteSettings()
 {
-#ifdef OR_CAN_I
+#if !WITH_ARCHETYPE_EXPERIMENT
 	ClearFlags(RF_ArchetypeObject);
 #endif
 }

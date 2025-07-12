@@ -10,6 +10,8 @@
 #include "Textures/SlateIcon.h"
 #include "EnhancedPaletteSettings.generated.h"
 
+#define WITH_ARCHETYPE_EXPERIMENT 0
+
 /**
  * This is crude simple helper to prevent dependency of SlateIconReference plugin
  */

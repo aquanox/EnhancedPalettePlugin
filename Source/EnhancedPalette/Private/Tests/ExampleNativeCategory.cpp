@@ -6,6 +6,8 @@
 #include "ActorFactories/ActorFactoryCharacter.h"
 #include "ActorFactories/ActorFactoryPawn.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ExampleNativeCategory)
+
 namespace FeatureSwitches
 {
 	constexpr bool bRegisterPeriodicUpdate = false;

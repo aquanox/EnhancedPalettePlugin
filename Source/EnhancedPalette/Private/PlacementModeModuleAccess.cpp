@@ -12,6 +12,7 @@
 #include "LevelEditor.h"
 #include "TutorialMetaData.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "Misc/ConfigCacheIni.h"
 
 #if UE_VERSION_NEWER_THAN_OR_EQUAL(5, 5, 0)
 #include "Layout/CategoryDrivenContentBuilderBase.h"
@@ -24,7 +25,6 @@
 // @from public
 #include "PlacementModeModule.h"
 // @from private
-#include "Misc/ConfigCacheIni.h"
 #include "SPlacementModeTools.h"
 #pragma pop_macro("IMPLEMENT_MODULE")
 

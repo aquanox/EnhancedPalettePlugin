@@ -10,6 +10,8 @@
 #include "EnhancedPaletteGlobals.h"
 #include "EnhancedPaletteSubsystem.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(EnhancedPaletteCategory)
+
 void UEnhancedPaletteCategory::PostInitProperties()
 {
 	Super::PostInitProperties();
