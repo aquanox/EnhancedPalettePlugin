@@ -6,7 +6,6 @@ using UnrealBuildTool;
 public class EnhancedPalette : ModuleRules
 {
     public bool bStrictIncludesCheck = false;
-    public bool bWithSlateIconReference = false;
 
 	public EnhancedPalette(ReadOnlyTargetRules Target) : base(Target)
 	{
@@ -51,12 +50,6 @@ public class EnhancedPalette : ModuleRules
 		if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion < 5)
 		{
 			PrivateDependencyModuleNames.Add("StructUtils");
-		}
-
-		if (bWithSlateIconReference)
-		{
-			PrivateDependencyModuleNames.Add("SlateIconReference");
-			PrivateDefinitions.Add("WITH_SLATE_ICON_REFERENCE=1");
 		}
 	}
 }

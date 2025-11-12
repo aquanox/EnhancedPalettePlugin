@@ -35,14 +35,8 @@ public:
 	UPROPERTY(EditAnywhere, Category="PaletteCategory")
 	FText ShortDisplayName;
 
-	//#if WITH_SLATE_ICON_REFERENCE
-	//UPROPERTY(VisibleAnywhere, Category="PaletteCategory", meta=(DisplayMode="Compact,NoSmall"))
-	//FSlateIconReference DisplayIcon;
-	//#else
-	// Category display icon code (non-SIR alternative)
 	UPROPERTY(EditAnywhere, Category="PaletteCategory")
 	FSimpleIconSelector DisplayIcon;
-	//#endif
 
 	// Content is sortable
 	UPROPERTY(EditAnywhere, Category="PaletteCategory")

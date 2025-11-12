@@ -324,13 +324,8 @@ public:
 	UPROPERTY(EditAnywhere, NoClear, DisplayName="Icon Text", Category=General)
 	FText ShortDisplayName;
 	
-//#if WITH_SLATE_ICON_REFERENCE
-	//UPROPERTY(VisibleAnywhere, Category="General", meta=(DisplayMode="Compact,NoSmall"))
-	//FSlateIconReference DisplayIcon;
-//#else
 	UPROPERTY(EditAnywhere, Category=General)
 	FSimpleIconSelector DisplayIcon;
-//#endif
 	
 	UPROPERTY(EditAnywhere, Category=General)
 	// Category content would be sortable

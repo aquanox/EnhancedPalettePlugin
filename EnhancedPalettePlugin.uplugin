@@ -27,11 +27,6 @@
 			"Name": "StructUtils",
 			"Enabled": true,
 			"Optional": true
-		},
-		{
-			"Name": "SlateIconReferencePlugin",
-			"Enabled": false,
-			"Optional": true
 		}
 	]
 }
