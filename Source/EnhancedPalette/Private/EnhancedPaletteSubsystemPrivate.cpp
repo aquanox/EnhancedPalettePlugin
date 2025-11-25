@@ -1,4 +1,6 @@
-﻿#include "EnhancedPaletteSubsystemPrivate.h"
+﻿// Copyright 2025, Aquanox.
+
+#include "EnhancedPaletteSubsystemPrivate.h"
 
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Engine/Blueprint.h"
@@ -47,7 +49,7 @@ void FConfigDrivenCategory::Register(UEnhancedPaletteSubsystem* Owner, FPlacemen
 			ensure(CategoryInfo->UniqueId == UniqueId);
 			FPlacementCategoryInfo Reg(
 				CategoryInfo->DisplayName,
-				CategoryInfo->DisplayIcon.ToSlateIcon(),
+				CategoryInfo->DisplayIcon.GetSlateIcon(),
 				CategoryInfo->UniqueId,
 				CategoryInfo->TagMetaData,
 				CategoryInfo->SortOrder,
@@ -85,7 +87,7 @@ bool FConfigDrivenCategory::UpdateRegistration(UEnhancedPaletteSubsystem* Owner,
 			Category->SortOrder = CategoryInfo->SortOrder;
 			Category->bSortable = CategoryInfo->bSortable;
 			Category->TagMetaData = CategoryInfo->TagMetaData;
-			Category->DisplayIcon = CategoryInfo->DisplayIcon.ToSlateIcon();
+			Category->DisplayIcon = CategoryInfo->DisplayIcon.GetSlateIcon();
 			return true;
 		}
 	}

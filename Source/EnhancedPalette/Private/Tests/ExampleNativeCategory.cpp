@@ -22,7 +22,7 @@ UExampleNativeCategory::UExampleNativeCategory()
 {
     ShortDisplayName = INVTEXT("Native");
 	DisplayName = INVTEXT("This is an example of category");
-	DisplayIcon = FSimpleIconSelector("EditorStyle", "ContentPalette.ShowParticles");
+	DisplayIcon = FSimpleIconReference("EditorStyle", "ContentPalette.ShowParticles");
 
 	// can register for periodic updates
 	if (FeatureSwitches::bRegisterPeriodicUpdate)

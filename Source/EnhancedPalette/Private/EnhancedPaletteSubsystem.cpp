@@ -90,7 +90,7 @@ void UEnhancedPaletteSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Collection.InitializeDependency<UEditorAssetSubsystem>();
 	Collection.InitializeDependency<UPlacementSubsystem>();
 
-	// # Settings setup 
+	// # Settings setup
 
 	UEnhancedPaletteSettings* Settings = GetMutableDefault<UEnhancedPaletteSettings>();
 	//GConfig->LoadFile(Settings->GetClass()->GetConfigName());
@@ -120,7 +120,7 @@ void UEnhancedPaletteSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		AssetRegistry.OnFilesLoaded().AddUObject(this, &ThisClass::OnInitialAssetsScanComplete);
 	}
 
-	// # Placement mode module load awaiting - can not force module to load early as it wrecks PM discovery process 
+	// # Placement mode module load awaiting - can not force module to load early as it wrecks PM discovery process
 
 	// try access PM right away
 	TrySetupPlacementModule(NAME_None, EModuleChangeReason::ModuleLoaded);
@@ -133,7 +133,7 @@ void UEnhancedPaletteSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UEnhancedPaletteSubsystem::TrySetupPlacementModule(FName Name, EModuleChangeReason)
 {
-	// await until PlacementModule is available naturally or things break if it is forced to load too early 
+	// await until PlacementModule is available naturally or things break if it is forced to load too early
 	if (IPlacementModeModule::IsAvailable() && !ModuleAccessPrivate.IsValid())
 	{
 		UE_LOG(LogEnhancedPalette, Log, TEXT("Detected PlacementMode module presence. Setting up accessor"));
@@ -141,7 +141,7 @@ void UEnhancedPaletteSubsystem::TrySetupPlacementModule(FName Name, EModuleChang
 		ModuleAccessPrivate = MakeShared<FPlacementModeModuleAccess>(IPlacementModeModule::Get());
 		// TBD: It is possible other code adds categories in runtime. possibly need to refresh internal list
 		(*ModuleAccessPrivate)->OnPlacementModeCategoryListChanged().AddUObject(this, &ThisClass::OnPlacementModeCategoryListChanged);
-		// The external placeable item filter can alter content of custom categories. 
+		// The external placeable item filter can alter content of custom categories.
 		(*ModuleAccessPrivate)->OnPlaceableItemFilteringChanged().AddUObject(this, &ThisClass::OnPlaceableItemFilteringChanged);
 		// TBD: PM already tracks most common IAssetRegistry actions.
 		// even if multiple refresh triggers occur - the update will happen next tick only
@@ -243,7 +243,7 @@ void UEnhancedPaletteSubsystem::Tick(float DeltaTime)
 			Ptr->Tick(DeltaTime);
 		}
 	}
-	
+
 	if (bRequireDiscover)
 	{
 		bRequireDiscover = false;
@@ -477,7 +477,7 @@ void UEnhancedPaletteSubsystem::TryPopulateCategoryItems()
 		if (Ptr->bDirtyContent)
 		{
 			FPaletteScopedTimeLogger ScopeForCategory(FPaletteScopedTimeLogger::START_END, Ptr->UniqueId.ToString(), ELogVerbosity::Verbose);
-			
+
 			Ptr->bDirtyContent = false;
 			bChanged = true;
 
@@ -526,7 +526,7 @@ void UEnhancedPaletteSubsystem::TryPopulateCategoryItems()
 					{
 						UE_LOG(LogEnhancedPalette, Warning, TEXT("Register Placement Item: Failed"));
 					}
-					
+
 				}
 			}
 
@@ -552,7 +552,7 @@ bool UEnhancedPaletteSubsystem::CreateExternalCategory(const FStaticPlacementCat
 	auto Category = MakeShared<FExternalCategory>(CreationInfo.UniqueId);
 	Category->Data = CreationInfo;
 	ManagedCategories.Add(MoveTemp(Category));
-	
+
 	// would need update as new discovery was made
 	RequestDiscover();
 	return true;
@@ -637,7 +637,7 @@ void UEnhancedPaletteSubsystem::ApplyEngineCategorySettings()
 	// Phase 2: apply visibility changes based on permission list
 
 	const FName OWNER_ID = UEnhancedPaletteSubsystem::StaticClass()->GetFName();
-	
+
 	auto PermListAccess = StaticCastSharedRef<FPermissionListAccess>(ModuleRef->GetCategoryPermissionList());
 
 	{
@@ -657,7 +657,7 @@ void UEnhancedPaletteSubsystem::ApplyEngineCategorySettings()
 	}
 
 	PermListAccess->NotifyChanged();
-	
+
 	RequestToolbarRefresh();
 }
 
@@ -708,13 +708,13 @@ void UEnhancedPaletteSubsystem::OnSettingsPanelSelected()
 			Settings->EngineCategories.RemoveAll([UniqueHandle](const FStandardPlacementCategoryInfo& Info) { return Info.UniqueId == UniqueHandle; });
 			continue;
 		}
-		
+
 		if (const FStandardPlacementCategoryInfo* LastCycleInfo = LastCycleData.FindByKey(UniqueHandle))
 		{ // pick last cycle data
 			Settings->EngineCategories.Emplace(*LastCycleInfo);
 			continue;
 		}
-		
+
 		if (const FPlacementCategoryInfo* CategoryInfo = ModuleRef->GetRegisteredPlacementCategory(UniqueHandle))
 		{ // new entry
 			FStandardPlacementCategoryInfo Info;
@@ -731,7 +731,7 @@ void UEnhancedPaletteSubsystem::OnSettingsPanelSelected()
 		return Left.Order < Right.Order;
 	});
 
-	// import recent list to settings panel 
+	// import recent list to settings panel
 	Settings->RecentlyPlaced.Empty();
 	for (const FActorPlacementInfo& Element : ModuleRef->GetRecentlyPlaced())
 	{
@@ -772,12 +772,12 @@ void UEnhancedPaletteSubsystem::OnSettingsPanelModified(UObject* Obj, FPropertyC
 	const FName ChangedPropName = Evt.GetPropertyName();
 
 	UE_LOG(LogEnhancedPalette, Verbose, TEXT("OnSettingsChanged %s :: %s"), *MemberPropName.ToString(), *ChangedPropName.ToString());
-	
+
 	auto IsMemberOf = [](const FProperty* InProperty, const UStruct* InStruct) -> bool
 	{
 		return InProperty && InProperty->GetOwnerStruct()->IsChildOf(InStruct);
 	};
-	
+
 	const bool bSettingsChange = IsMemberOf(Evt.Property, UEnhancedPaletteSettings::StaticClass());
 	const bool bCategoryChange = IsMemberOf(Evt.Property, FConfigPlacementCategoryInfo::StaticStruct());
 	const bool bItemChange = IsMemberOf(Evt.Property, FConfigPlaceableItem::StaticStruct());

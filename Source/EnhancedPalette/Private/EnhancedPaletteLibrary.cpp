@@ -4,7 +4,7 @@
 #include "EnhancedPaletteGlobals.h"
 #include "EnhancedPaletteSubsystem.h"
 #include "EnhancedPaletteCategory.h"
-#include "EnhancedPaletteCustomizations.h"
+#include "IconReferenceCustomization.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EnhancedPaletteLibrary)
 
@@ -45,7 +45,7 @@ bool UEnhancedPaletteLibrary::RegisterExternalCategory(FName UniqueId, FText Dis
 		Info.UniqueId = UniqueId;
 		Info.DisplayName = DisplayName;
 		Info.ShortDisplayName = ShortDisplayName;
-		Info.DisplayIcon = FSimpleIconSelector { DisplayIconCode };
+		Info.DisplayIcon = FSimpleIconReference(DisplayIconCode);
 		Info.SortOrder = SortOrder;
 		Info.bSortable = bSortable;
 
@@ -57,16 +57,16 @@ bool UEnhancedPaletteLibrary::RegisterExternalCategory(FName UniqueId, FText Dis
 
 TArray<FString> UEnhancedPaletteLibrary::K2_IconSelectorHelper()
 {
-#if WITH_GATHER_ITEMS_MAGIC
-	TArray<FString> Temp;
-	for (const auto& Item : FSimpleIconSelectorCustomization::GatherIcons())
+	static TArray<FString> LocalStorage;
+	if (!LocalStorage.Num())
 	{
-		Temp.Emplace(Item->IconCode);
+		FSimpleIconReferenceCustomization::GatherIcons([&](FName StyleSet, FName IconName)
+		{
+			LocalStorage.Add(FSimpleIconReference(StyleSet, IconName).GetIconCode());
+		});
+		Algo::Sort(LocalStorage);
 	}
-	return Temp;
-#else
-	return FSimpleIconSelectorCustomization::GatherIcons();
-#endif
+	return LocalStorage;
 }
 
 bool UEnhancedPaletteLibrary::UnregisterExternalCategory(FName UniqueId)

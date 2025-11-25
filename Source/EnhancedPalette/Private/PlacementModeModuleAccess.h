@@ -29,8 +29,8 @@ private:
 public:
 	IPlacementModeModule& Get() const;
 	IPlacementModeModule* operator->() const { return &Get(); }
-	
-	/** 
+
+	/**
 	 * Get names of all standard engine categories
 	 */
 	static const TArray<FName>& GetBuiltInCategoryNames();
@@ -43,14 +43,14 @@ public:
 	void NotifyCategoryRefreshed(const FName& InName);
 	void NotifyRecentChanged();
 	void NotifyAssetsChanged();
-	
+
 	void SetRecentList(const TArray<FConfigActorPlacementInfo>& NewList);
-	
+
 	// @hack for 5.5+
 	TSharedPtr<SWidget> TryDiscoverToolWidget();
 	void TryForceToolbarRefresh();
 	void TryForceContentRefresh();
-	
+
 private:
 	IPlacementModeModule* Impl = nullptr;
 	struct FriendlyPM& GetImpl() const;

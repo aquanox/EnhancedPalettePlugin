@@ -49,7 +49,7 @@ FText UEnhancedPaletteCategory::GetShortDisplayName() const
 
 FSlateIcon UEnhancedPaletteCategory::GetDisplayIcon() const
 {
-	return DisplayIcon.ToSlateIcon();
+	return DisplayIcon.GetSlateIcon();
 }
 
 FString UEnhancedPaletteCategory::GetTagMetaData() const

@@ -55,4 +55,4 @@ using PlacementCategoryMap = TMap<FName, FPlacementCategory>;
 BM_IMPLEMENT_GET_PRIVATE_VAR(PlacementCategoryMap, GCategories, FPlacementModeModule, Categories);
 
 
-#endif 
+#endif

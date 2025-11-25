@@ -6,10 +6,10 @@
 #include "EnhancedPaletteSubsystem.h"
 #include "BlueprintEditorSettings.h"
 #include "EnhancedPaletteCategory.h"
-#include "EnhancedPaletteCustomizations.h"
+#include "IconReferenceCustomization.h"
 #include "Kismet2/KismetEditorUtilities.h"
 
-#define LOCTEXT_NAMESPACE  "EnhancedPalette"
+#define LOCTEXT_NAMESPACE "EnhancedPalette"
 
 DEFINE_LOG_CATEGORY(LogEnhancedPalette);
 
@@ -45,7 +45,7 @@ void FEnhancedPaletteModule::ShutdownModule()
 {
 	FCoreDelegates::OnPostEngineInit.RemoveAll(this);
 	FEditorDelegates::OnEditorInitialized.RemoveAll(this);
-	
+
 	FKismetEditorUtilities::UnregisterAutoBlueprintNodeCreation(this);
 
 	EnhancedPaletteCustomizations::Unregister();

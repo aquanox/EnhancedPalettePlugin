@@ -128,7 +128,7 @@ void FPlacementModeModuleAccess::NotifyAssetsChanged()
 
 void FPlacementModeModuleAccess::SetRecentList(const TArray<FConfigActorPlacementInfo>& NewList)
 {
-	// There are only two options - new list will have some element removed or have no elements at all 
+	// There are only two options - new list will have some element removed or have no elements at all
 	TArray<FActorPlacementInfo>& RecentlyPlaced = GetImpl().*GRecentlyPlaced;
 
 	TArray<FString> RecentlyPlacedAsStrings;
@@ -183,7 +183,7 @@ TSharedPtr<SWidget> FPlacementModeModuleAccess::TryDiscoverToolWidget()
 void FPlacementModeModuleAccess::TryForceToolbarRefresh()
 {
 	// epic does not refresh toolbar properly after initial populate, so new/changed things do not reflect
-	// to fix that need to locate the PlacementMode widget and 
+	// to fix that need to locate the PlacementMode widget and
 	if (auto Widget = TryDiscoverToolWidget())
 	{
 		TSharedRef<SPlacementModeTools> ToolsWidgetPrivate = StaticCastSharedRef<SPlacementModeTools>(Widget.ToSharedRef());

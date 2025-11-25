@@ -1,6 +1,7 @@
-﻿#pragma once
+﻿// Copyright 2025, Aquanox.
 
-#include "CoreMinimal.h"
+#pragma once
+
 #include "PlacementModeModuleAccess.h"
 #include "EnhancedPaletteSettings.h"
 #include "EnhancedPaletteSubsystem.h"
@@ -11,11 +12,11 @@ class UEnhancedPaletteSubsystem;
 struct FPlacementModeModuleAccess;
 
 /**
- * 
+ *
  */
 struct FManagedCategory
 {
-	// category unique identifier 
+	// category unique identifier
 	const FName UniqueId;
 	// category is dynamic and needs to be dynamically repopulated (always dirty?)
 	EManagedCategoryFlags Flags;
@@ -40,9 +41,9 @@ struct FManagedCategory
 	virtual void AddReferencedObjects(FReferenceCollector& Collector, UObject* Owner);
 	virtual void Tick(float DeltaTime);
 
-	inline bool HasFlag(EManagedCategoryFlags InFlag) const { return EnumHasAnyFlags(Flags, InFlag); }
-	inline void SetFlag(EManagedCategoryFlags InFlag) { EnumAddFlags(Flags, InFlag); }
-	inline void UnsetFlag(EManagedCategoryFlags InFlag) { EnumRemoveFlags(Flags, InFlag); }
+	bool HasFlag(EManagedCategoryFlags InFlag) const { return EnumHasAnyFlags(Flags, InFlag); }
+	void SetFlag(EManagedCategoryFlags InFlag) { EnumAddFlags(Flags, InFlag); }
+	void UnsetFlag(EManagedCategoryFlags InFlag) { EnumRemoveFlags(Flags, InFlag); }
 
 	friend bool operator==(const TSharedPtr<FManagedCategory>& Item, const FName& Key) { return Item->UniqueId == Key; }
 };
@@ -97,13 +98,13 @@ struct FExternalCategory : public FConfigDrivenCategory
 };
 
 /**
- * 
+ *
  */
 struct FManagedCategoryChangeTracker : public TSharedFromThis<FManagedCategoryChangeTracker>
 {
 	FManagedCategoryChangeTracker() = default;
 	~FManagedCategoryChangeTracker();
-	
+
 	static bool IsTrackingEnabled();
 
 	void RegisterTrackers(UEnhancedPaletteSubsystem* Owner);

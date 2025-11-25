@@ -7,6 +7,7 @@
 #include "IPlacementModeModule.h"
 #include "EnhancedPaletteCategory.generated.h"
 
+class UEnhancedPaletteSubsystem;
 enum class EManagedCategoryDirtyFlags;
 
 /**
@@ -14,7 +15,7 @@ enum class EManagedCategoryDirtyFlags;
  *
  * Category classes must be created in Editor or UncookedOnly modules!
  * Trying to make one in Runtime will result in packaging errors.
- * 
+ *
  * Category can be either a native class or a blueprint overriding respective gather function.
  */
 UCLASS(Abstract, Blueprintable)
@@ -27,7 +28,7 @@ public:
 	UPROPERTY(Transient, VisibleAnywhere, Category="PaletteCategory")
 	FName UniqueId;
 
-	// Category full display name (while it is actually text for tooltip) 
+	// Category full display name (while it is actually text for tooltip)
 	UPROPERTY(EditAnywhere, Category="PaletteCategory")
 	FText DisplayName;
 
@@ -36,7 +37,7 @@ public:
 	FText ShortDisplayName;
 
 	UPROPERTY(EditAnywhere, Category="PaletteCategory")
-	FSimpleIconSelector DisplayIcon;
+	FSimpleIconReference DisplayIcon;
 
 	// Content is sortable
 	UPROPERTY(EditAnywhere, Category="PaletteCategory")
@@ -87,9 +88,9 @@ public:
 	virtual int32 GetSortOrder() const { return SortOrder; }
 
 	/**
- 	 * 
+ 	 *
 	 */
-	void Initialize(class UEnhancedPaletteSubsystem* InSubystem);
+	void Initialize(UEnhancedPaletteSubsystem* InSubystem);
 
 	virtual void NativeInitialize();
 
@@ -97,7 +98,7 @@ public:
 	void K2_Initialize();
 
 	/**
-	 * 
+	 *
 	 */
 	void Tick(float DeltaTime);
 
@@ -107,7 +108,7 @@ public:
 	void K2_Tick();
 
 	/**
-	 * The data collection entry pointer 
+	 * The data collection entry pointer
 	 */
 	void GatherItems(TArray<TConfigPlaceableItem>& OutResult);
 
@@ -117,7 +118,7 @@ public:
 	void K2_GatherItems();
 
 	/**
-	 * Add native type descriptor (constructs FPlaceableItem) 
+	 * Add native type descriptor (constructs FPlaceableItem)
 	 */
 	template <typename InObjectType = FPlaceableItem, typename... InArgTypes>
 	void AddPlaceableItem(InArgTypes&&... Args)
@@ -128,14 +129,14 @@ public:
 	}
 
 	/**
-	 * Add native type descriptor (directly wraps FPlaceableItem) 
-	 * @param InItem 
+	 * Add native type descriptor (directly wraps FPlaceableItem)
+	 * @param InItem
 	 */
 	void AddPlaceableItemPtr(TSharedPtr<FPlaceableItem> InItem);
 
 	/**
-	 * Add array of native type descriptors (directly wraps FPlaceableItem) 
-	 * @param InItems 
+	 * Add array of native type descriptors (directly wraps FPlaceableItem)
+	 * @param InItems
 	 */
 	template<typename T = FPlaceableItem>
 	void AddPlaceableItemPtrs(const TArray<TSharedPtr<T>>& InItems)
@@ -156,7 +157,7 @@ public:
 		Item.template InitializeAs<T>(Forward<TArgs>(Args)...);
 		AddInternal(Item);
 	}
-	
+
 	/**
 	 * Add generic descriptor from instanced struct
 	 * @param Item Input descriptor
@@ -166,7 +167,7 @@ public:
 	void AddItem(const TInstancedStruct<FConfigPlaceableItem>& Item);
 
 	/**
-	 * 
+	 *
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
 		meta=(DisplayName="Add Items", Keywords="adi addi", BlueprintProtected=true))
@@ -175,8 +176,8 @@ public:
 	/**
 	 * Add item descriptor with Factory Class
 	 * @param FactoryClass
-	 * @param NativeName optional internal name for tile (unique within category) 
-	 * @param ItemName optional display item for tile 
+	 * @param NativeName optional internal name for tile (unique within category)
+	 * @param ItemName optional display item for tile
 	 * @param ItemSortOrder optional sort order for tile
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
@@ -184,11 +185,11 @@ public:
 	void AddFactoryClass(TSoftClassPtr<UActorFactory> FactoryClass, FName NativeName = NAME_None, FText ItemName = INVTEXT(""), int32 ItemSortOrder = 0);
 
 	/**
-	 * Add item descriptor with Factory Class and Asset 
-	 * @param Factory 
-	 * @param AssetData 
+	 * Add item descriptor with Factory Class and Asset
+	 * @param Factory
+	 * @param AssetData
 	 * @param NativeName optional internal name for tile (unique within category)
-	 * @param ItemName optional display item for tile 
+	 * @param ItemName optional display item for tile
 	 * @param ItemSortOrder optional sort order for tile
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
@@ -196,11 +197,11 @@ public:
 	void AddFactoryWithAsset(TSoftClassPtr<UActorFactory> Factory,const FAssetData& AssetData,  FName NativeName = NAME_None, FText ItemName = INVTEXT(""), int32 ItemSortOrder = 0);
 
 	/**
-	 * Add item descriptor with Factory Class and Asset 
-	 * @param FactoryClass 
-	 * @param AssetObject 
+	 * Add item descriptor with Factory Class and Asset
+	 * @param FactoryClass
+	 * @param AssetObject
 	 * @param NativeName optional internal name for tile (unique within category)
-	 * @param ItemName optional display item for tile 
+	 * @param ItemName optional display item for tile
 	 * @param ItemSortOrder optional sort order for tile
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
@@ -210,9 +211,9 @@ public:
 	/**
 	 * Add item descriptor for Actor Class.
 	 * Factory detected automatically.
-	 * @param ActorClass 
+	 * @param ActorClass
 	 * @param NativeName optional internal name for tile (unique within category)
-	 * @param ItemName optional display item for tile 
+	 * @param ItemName optional display item for tile
 	 * @param ItemSortOrder optional sort order for tile
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
@@ -222,9 +223,9 @@ public:
 	/**
 	 * Add item descriptor for generic Object (Mesh, DataAsset).
 	 * Factory detected automatically.
-	 * @param AssetObject 
+	 * @param AssetObject
 	 * @param NativeName optional internal name for tile (unique within category)
-	 * @param ItemName optional display item for tile 
+	 * @param ItemName optional display item for tile
 	 * @param ItemSortOrder optional sort order for tile
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
@@ -234,9 +235,9 @@ public:
 	/**
 	 * Add item descriptor for generic Object (Mesh, DataAsset).
 	 * Factory detected automatically.
-	 * @param AssetData 
+	 * @param AssetData
 	 * @param NativeName optional internal name for tile (unique within category)
-	 * @param ItemName optional display item for tile 
+	 * @param ItemName optional display item for tile
 	 * @param ItemSortOrder optional sort order for tile
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
@@ -245,7 +246,7 @@ public:
 
 	/**
 	 * Automatically assign order for each newly added element starting from specified value
-	 * @param StartOrder 
+	 * @param StartOrder
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette,
 		meta=( BlueprintProtected=true))
@@ -263,14 +264,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette, meta=(BlueprintProtected=true))
 	void SortItems();
-	
+
 protected:
 	virtual bool CanAddItem(const TConfigPlaceableItem& Item);
 	virtual void PostItemAdded(TConfigPlaceableItem& Item);
-	
+
 	void AddInternal(const TConfigPlaceableItem& Item);
 	void AddInternal(TConfigPlaceableItem&& Item);
-	
+
 	UFUNCTION(BlueprintCallable, Category=EnhancedPalette, meta=(BlueprintProtected=true))
 	void PrintDebugInfo();
 };

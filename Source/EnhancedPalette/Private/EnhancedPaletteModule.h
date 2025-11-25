@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Logging/LogMacros.h"
 #include "EnhancedPaletteGlobals.h"
 #include "Modules/ModuleManager.h"
 
@@ -14,12 +12,12 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded("EnhancedPalette");
 	}
-	
+
 	static FEnhancedPaletteModule& Get()
 	{
 		return FModuleManager::Get().GetModuleChecked<FEnhancedPaletteModule>("EnhancedPalette");
 	}
-	
+
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 	virtual bool SupportsDynamicReloading() override { return false; }
@@ -32,7 +30,7 @@ class FPaletteScopedTimeLogger
 {
 public:
 	enum EMode { START_END, END };
-	
+
 	explicit FPaletteScopedTimeLogger(EMode InMode, FString InMsg, ELogVerbosity::Type InVerbosity = ELogVerbosity::Verbose);
 	~FPaletteScopedTimeLogger();
 private:

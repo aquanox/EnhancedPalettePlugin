@@ -60,7 +60,7 @@ class ENHANCEDPALETTE_API UEnhancedPaletteSubsystem : public UEditorSubsystem, p
 public:
 	// Quick subsystem accessor
 	static UEnhancedPaletteSubsystem* Get();
-	
+
 	// {{{ Tickable
 	virtual TStatId GetStatId() const override;
 	virtual ETickableTickType GetTickableTickType() const override;
@@ -77,7 +77,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// }}}
 
-	// {{{ editor tracking 
+	// {{{ editor tracking
 	void TrySetupPlacementModule(FName, EModuleChangeReason);
 	void OnInitialAssetsScanComplete();
 	// }}}
@@ -120,7 +120,7 @@ public:
 	void OnSettingsPanelSelected(); // load PM data onto settings panel
 	void OnSettingsPanelModified(UObject*, FPropertyChangedEvent&);
 	void OnSettingsPanelCommand(FName CommandId);
-	
+
 	void OnCategoryBlueprintModified(class UBlueprint*, FName CategoryId);
 	void OnCategoryObjectModified(UObject*, struct FPropertyChangedEvent&, FName Category);
 
@@ -128,7 +128,7 @@ public:
 	FOnPlacementModuleReady& OnPlacementModuleReady() { return OnPlacementModuleReadyPrivate; }
 
 protected:
-	// All managed categories stored here 
+	// All managed categories stored here
 	TArray<TSharedPtr<FManagedCategory>> ManagedCategories;
 
 	TSharedPtr<FPlacementModeModuleAccess> ModuleAccessPrivate;
@@ -149,10 +149,10 @@ protected:
 
 	// flag that indicates that subsystem is waiting for asset load to complete
 	bool bPendingAssetLoad = false;
-	
+
 	// flag that indicates subsystem successful initialization
 	bool bSubsystemReady = false;
-	
+
 	bool bRequireDiscover = false;
 	bool bRequirePopulate = false;
 	bool bRequireUpdateManagedCategories = false;

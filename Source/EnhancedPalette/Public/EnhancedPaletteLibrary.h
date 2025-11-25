@@ -44,13 +44,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="EnhancedPalette|Misc", meta=(DefaultToSelf="Category", AdvancedDisplay=1))
 	static void NotifyCategoryChanged(UEnhancedPaletteCategory* Category, bool bContent = true, bool bInfo = false);
-	
+
 	UFUNCTION(BlueprintCallable, Category="EnhancedPalette|Misc")
 	static UActorFactory* FindActorFactory(TSubclassOf<UActorFactory> Class);
-	
+
 	UFUNCTION(BlueprintCallable, Category="EnhancedPalette|Misc")
 	static UActorFactory* FindActorFactoryForActor(TSubclassOf<AActor> Class);
-	
+
 	UFUNCTION(BlueprintCallable, Category="EnhancedPalette|Misc")
 	static UActorFactory* FindActorFactoryByClassForActor(TSubclassOf<UActorFactory> FactoryClass, TSubclassOf<AActor> ActorClass);
 };
